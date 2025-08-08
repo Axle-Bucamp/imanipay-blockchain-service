@@ -1,0 +1,282 @@
+# CodeRabbit Configuration for ImaniPay Blockchain Service
+# AI-powered code review and analysis
+
+# Review settings
+reviews:
+  # Enable automatic reviews on pull requests
+  auto_review: true
+  
+  # Review all file types
+  include_patterns:
+    - "**/*.py"
+    - "**/*.yml"
+    - "**/*.yaml"
+    - "**/*.json"
+    - "**/*.md"
+    - "**/*.txt"
+    - "**/*.toml"
+    - "**/*.cfg"
+    - "**/*.ini"
+    - "**/Dockerfile*"
+    - "**/*.sh"
+  
+  # Exclude certain files from review
+  exclude_patterns:
+    - "**/migrations/**"
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - "**/node_modules/**"
+    - "**/venv/**"
+    - "**/env/**"
+    - "**/.git/**"
+    - "**/coverage/**"
+    - "**/htmlcov/**"
+    - "**/*.log"
+
+# Language-specific settings
+language_settings:
+  python:
+    # Focus on security, performance, and best practices
+    focus_areas:
+      - security
+      - performance
+      - maintainability
+      - readability
+      - error_handling
+      - type_safety
+    
+    # Python-specific checks
+    checks:
+      - sql_injection
+      - xss_vulnerabilities
+      - authentication_issues
+      - authorization_flaws
+      - data_validation
+      - error_handling
+      - resource_management
+      - async_await_patterns
+      - exception_handling
+      - logging_practices
+
+# Security-focused review
+security:
+  # Enable security-focused reviews
+  enabled: true
+  
+  # Security categories to focus on
+  categories:
+    - authentication
+    - authorization
+    - input_validation
+    - output_encoding
+    - cryptography
+    - session_management
+    - error_handling
+    - logging
+    - data_protection
+    - api_security
+    - database_security
+    - file_handling
+    - network_security
+    - dependency_security
+
+# Performance analysis
+performance:
+  enabled: true
+  focus_areas:
+    - database_queries
+    - async_operations
+    - memory_usage
+    - cpu_intensive_operations
+    - network_calls
+    - caching_strategies
+    - algorithm_efficiency
+
+# Code quality checks
+quality:
+  enabled: true
+  standards:
+    - pep8
+    - type_hints
+    - docstrings
+    - error_handling
+    - code_complexity
+    - duplication
+    - naming_conventions
+    - import_organization
+
+# Financial services specific checks
+domain_specific:
+  financial_services:
+    enabled: true
+    checks:
+      - payment_processing_security
+      - transaction_integrity
+      - audit_logging
+      - compliance_requirements
+      - data_encryption
+      - pci_dss_compliance
+      - anti_money_laundering
+      - know_your_customer
+      - cross_border_regulations
+
+# Blockchain specific checks
+blockchain:
+  enabled: true
+  focus_areas:
+    - smart_contract_security
+    - private_key_handling
+    - transaction_validation
+    - consensus_mechanisms
+    - wallet_security
+    - gas_optimization
+    - reentrancy_attacks
+    - overflow_underflow
+    - access_control
+
+# API security checks
+api_security:
+  enabled: true
+  checks:
+    - authentication_mechanisms
+    - authorization_controls
+    - input_validation
+    - rate_limiting
+    - cors_configuration
+    - error_handling
+    - logging_practices
+    - data_sanitization
+
+# Database security
+database_security:
+  enabled: true
+  focus_areas:
+    - sql_injection_prevention
+    - parameterized_queries
+    - connection_security
+    - data_encryption
+    - access_controls
+    - audit_logging
+    - backup_security
+
+# Infrastructure as Code
+infrastructure:
+  enabled: true
+  focus_areas:
+    - docker_security
+    - kubernetes_security
+    - secrets_management
+    - network_policies
+    - resource_limits
+    - security_contexts
+
+# Compliance checks
+compliance:
+  enabled: true
+  standards:
+    - gdpr
+    - pci_dss
+    - sox
+    - iso_27001
+    - nist_cybersecurity_framework
+
+# Review behavior
+behavior:
+  # Be thorough but constructive
+  tone: constructive
+  
+  # Focus on critical and high severity issues
+  severity_threshold: medium
+  
+  # Provide suggestions for improvements
+  suggest_improvements: true
+  
+  # Include code examples in suggestions
+  include_examples: true
+  
+  # Check for best practices
+  best_practices: true
+  
+  # Review documentation
+  review_documentation: true
+
+# Integration settings
+integrations:
+  github:
+    # Comment on pull requests
+    comment_on_pr: true
+    
+    # Request changes for critical issues
+    request_changes_on_critical: true
+    
+    # Approve if no critical issues
+    auto_approve_safe_changes: false
+    
+    # Label PRs based on review results
+    add_labels: true
+    
+    # Custom labels
+    labels:
+      security_review_needed: "security-review-needed"
+      performance_review_needed: "performance-review-needed"
+      breaking_changes: "breaking-changes"
+      needs_documentation: "needs-documentation"
+
+# Custom rules for ImaniPay
+custom_rules:
+  # Ensure all payment functions have proper error handling
+  payment_error_handling:
+    pattern: "def.*payment.*\\("
+    requires: ["try", "except", "logging"]
+    message: "Payment functions must include comprehensive error handling and logging"
+  
+  # Ensure all database operations use transactions
+  database_transactions:
+    pattern: "session\\.(add|delete|execute)"
+    requires: ["commit", "rollback"]
+    message: "Database operations should be wrapped in transactions with proper rollback handling"
+  
+  # Ensure sensitive data is encrypted
+  sensitive_data_encryption:
+    pattern: "(password|secret|key|token|private)"
+    requires: ["encrypt", "hash"]
+    message: "Sensitive data should be encrypted or hashed before storage"
+  
+  # Ensure API endpoints have authentication
+  api_authentication:
+    pattern: "@router\\.(get|post|put|delete)"
+    requires: ["Depends", "auth"]
+    message: "API endpoints should include authentication dependencies"
+  
+  # Ensure logging for security events
+  security_logging:
+    pattern: "(login|logout|auth|payment|transaction)"
+    requires: ["logger", "log"]
+    message: "Security-related operations should include comprehensive logging"
+
+# Notification settings
+notifications:
+  # Notify on critical security issues
+  critical_security_issues: true
+  
+  # Notify on performance regressions
+  performance_regressions: true
+  
+  # Notify on breaking changes
+  breaking_changes: true
+  
+  # Summary reports
+  daily_summary: true
+  weekly_summary: true
+
+# Learning and adaptation
+learning:
+  # Learn from feedback
+  adapt_to_feedback: true
+  
+  # Improve suggestions over time
+  improve_suggestions: true
+  
+  # Track review effectiveness
+  track_effectiveness: true
+

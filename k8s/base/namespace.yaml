@@ -1,0 +1,17 @@
+# ImaniPay Blockchain Service - Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: imanipay
+  labels:
+    name: imanipay
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: imanipay-platform
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    description: "ImaniPay Blockchain Service namespace for cross-border payments"
+    contact: "dev@imanipay.com"
+    documentation: "https://docs.imanipay.com"
+

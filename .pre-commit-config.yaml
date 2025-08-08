@@ -1,0 +1,409 @@
+# Pre-commit hooks configuration for ImaniPay Blockchain Service
+# Automated code quality checks before commits
+
+repos:
+  # ========================================================================
+  # General Pre-commit Hooks
+  # ========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # File formatting
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      
+      # Python specific
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: name-tests-test
+        args: [--pytest-test-first]
+      
+      # Security
+      - id: detect-private-key
+      - id: detect-aws-credentials
+      
+      # Large files
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      
+      # Mixed line endings
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # ========================================================================
+  # Python Code Formatting
+  # ========================================================================
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: [--line-length=100]
+
+  # ========================================================================
+  # Import Sorting
+  # ========================================================================
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  # ========================================================================
+  # Python Linting
+  # ========================================================================
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --extend-ignore=E203,W503]
+        additional_dependencies:
+          - flake8-docstrings
+          - flake8-import-order
+          - flake8-bugbear
+          - flake8-comprehensions
+          - flake8-simplify
+          - flake8-bandit
+          - flake8-broken-line
+          - flake8-commas
+          - flake8-quotes
+
+  # ========================================================================
+  # Type Checking
+  # ========================================================================
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --no-strict-optional]
+        additional_dependencies:
+          - types-redis
+          - types-requests
+          - types-python-dateutil
+          - types-PyYAML
+
+  # ========================================================================
+  # Security Analysis
+  # ========================================================================
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, -f, json, -o, bandit-report.json]
+        exclude: ^tests/
+
+  # ========================================================================
+  # Dependency Security
+  # ========================================================================
+  - repo: https://github.com/pyupio/safety
+    rev: 2.3.5
+    hooks:
+      - id: safety
+        args: [--json, --output, safety-report.json]
+
+  # ========================================================================
+  # Documentation
+  # ========================================================================
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: [--convention=google]
+
+  # ========================================================================
+  # YAML Formatting
+  # ========================================================================
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [yaml, json, markdown]
+        exclude: ^(\.github/workflows/|\.coderabbit\.yml)
+
+  # ========================================================================
+  # Dockerfile Linting
+  # ========================================================================
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: [--ignore, DL3008, --ignore, DL3009]
+
+  # ========================================================================
+  # Shell Script Linting
+  # ========================================================================
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+
+  # ========================================================================
+  # Secrets Detection
+  # ========================================================================
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  # ========================================================================
+  # License Headers
+  # ========================================================================
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.4
+    hooks:
+      - id: insert-license
+        files: \.py$
+        args:
+          - --license-filepath
+          - LICENSE_HEADER.txt
+          - --comment-style
+          - "#"
+
+  # ========================================================================
+  # Commit Message Linting
+  # ========================================================================
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  # ========================================================================
+  # Python Upgrade Syntax
+  # ========================================================================
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args: [--py311-plus]
+
+  # ========================================================================
+  # Remove Unused Imports
+  # ========================================================================
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --ignore-init-module-imports
+
+  # ========================================================================
+  # Dead Code Detection
+  # ========================================================================
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.10
+    hooks:
+      - id: vulture
+        args: [--min-confidence, "80"]
+
+  # ========================================================================
+  # Requirements.txt Sorting
+  # ========================================================================
+  - repo: https://github.com/pre-commit/mirrors-pip-compile
+    rev: v7.3.0
+    hooks:
+      - id: pip-compile
+        files: ^requirements\.in$
+        args: [--generate-hashes]
+
+  # ========================================================================
+  # SQL Formatting
+  # ========================================================================
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.3.5
+    hooks:
+      - id: sqlfluff-lint
+        additional_dependencies: [sqlfluff-templater-jinja]
+      - id: sqlfluff-fix
+        additional_dependencies: [sqlfluff-templater-jinja]
+
+  # ========================================================================
+  # Jupyter Notebook Cleaning
+  # ========================================================================
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.7.1
+    hooks:
+      - id: nbqa-black
+      - id: nbqa-isort
+      - id: nbqa-flake8
+
+  # ========================================================================
+  # OpenAPI/Swagger Validation
+  # ========================================================================
+  - repo: https://github.com/APIDevTools/swagger-parser
+    rev: v10.0.3
+    hooks:
+      - id: swagger-validator
+        files: ^docs/openapi\.yaml$
+
+  # ========================================================================
+  # Terraform (if using Infrastructure as Code)
+  # ========================================================================
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.86.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_docs
+      - id: terraform_tflint
+
+  # ========================================================================
+  # Kubernetes YAML Validation
+  # ========================================================================
+  - repo: https://github.com/instrumenta/kubeval
+    rev: v0.16.1
+    hooks:
+      - id: kubeval
+        files: ^k8s/.*\.yaml$
+
+  # ========================================================================
+  # License Compliance
+  # ========================================================================
+  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.3.2
+    hooks:
+      - id: python-safety-dependencies-check
+
+  # ========================================================================
+  # Code Complexity
+  # ========================================================================
+  - repo: https://github.com/PyCQA/mccabe
+    rev: 0.7.0
+    hooks:
+      - id: mccabe
+        args: [--min=10]
+
+  # ========================================================================
+  # Git Commit Conventions
+  # ========================================================================
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [optional-scope]
+
+  # ========================================================================
+  # Environment Variables Check
+  # ========================================================================
+  - repo: local
+    hooks:
+      - id: check-env-vars
+        name: Check environment variables
+        entry: python scripts/check_env_vars.py
+        language: python
+        files: ^(app/|tests/).*\.py$
+        additional_dependencies: [python-dotenv]
+
+  # ========================================================================
+  # Database Migration Check
+  # ========================================================================
+  - repo: local
+    hooks:
+      - id: check-migrations
+        name: Check database migrations
+        entry: python scripts/check_migrations.py
+        language: python
+        files: ^app/models\.py$
+        additional_dependencies: [alembic, sqlalchemy]
+
+  # ========================================================================
+  # API Schema Validation
+  # ========================================================================
+  - repo: local
+    hooks:
+      - id: validate-api-schema
+        name: Validate API schema
+        entry: python scripts/validate_api_schema.py
+        language: python
+        files: ^app/schemas\.py$
+        additional_dependencies: [pydantic, fastapi]
+
+  # ========================================================================
+  # Security Configuration Check
+  # ========================================================================
+  - repo: local
+    hooks:
+      - id: check-security-config
+        name: Check security configuration
+        entry: python scripts/check_security_config.py
+        language: python
+        files: ^app/core/config\.py$
+
+  # ========================================================================
+  # Test Coverage Check
+  # ========================================================================
+  - repo: local
+    hooks:
+      - id: check-test-coverage
+        name: Check test coverage
+        entry: python scripts/check_test_coverage.py
+        language: python
+        files: ^(app/|tests/).*\.py$
+        additional_dependencies: [coverage, pytest]
+
+# Configuration
+default_language_version:
+  python: python3.11
+
+default_stages: [commit, push]
+
+# Exclude patterns
+exclude: |
+  (?x)^(
+    migrations/|
+    __pycache__/|
+    \.git/|
+    \.tox/|
+    \.venv/|
+    venv/|
+    env/|
+    build/|
+    dist/|
+    \.egg-info/|
+    node_modules/|
+    coverage/|
+    htmlcov/|
+    \.coverage|
+    \.pytest_cache/|
+    \.mypy_cache/|
+    \.idea/|
+    \.vscode/|
+    \.DS_Store|
+    Thumbs\.db
+  )$
+
+# Minimum pre-commit version
+minimum_pre_commit_version: 3.6.0
+
+# CI configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+    
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
+

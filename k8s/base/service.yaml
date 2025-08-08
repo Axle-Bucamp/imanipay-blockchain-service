@@ -1,0 +1,163 @@
+# ImaniPay Blockchain Service - Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: imanipay-api-service
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: imanipay-platform
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: api
+  sessionAffinity: None
+
+---
+# Headless Service for StatefulSet (if needed)
+apiVersion: v1
+kind: Service
+metadata:
+  name: imanipay-api-headless
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: headless-service
+    app.kubernetes.io/part-of: imanipay-platform
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: api
+
+---
+# External Service (LoadBalancer) for direct access
+apiVersion: v1
+kind: Service
+metadata:
+  name: imanipay-api-external
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: external-service
+    app.kubernetes.io/part-of: imanipay-platform
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "10"
+    service.beta.kubernetes.io/aws-load-balancer-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-unhealthy-threshold: "3"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: api
+  loadBalancerSourceRanges:
+  - 0.0.0.0/0  # Restrict this in production
+  externalTrafficPolicy: Local
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: imanipay-platform
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: imanipay-platform
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+
+---
+# NGINX Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/component: proxy
+    app.kubernetes.io/part-of: imanipay-platform
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/component: proxy
+

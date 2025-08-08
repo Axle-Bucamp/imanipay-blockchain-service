@@ -1,0 +1,215 @@
+# ImaniPay Blockchain Service - Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: imanipay-api-ingress
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: imanipay-platform
+  annotations:
+    # Ingress Controller
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    
+    # SSL/TLS Configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Rate Limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    
+    # Security Headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';" always;
+    
+    # CORS Configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.imanipay.com,https://dashboard.imanipay.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "Content-Length,Content-Range"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    
+    # Load Balancing
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    nginx.ingress.kubernetes.io/load-balance: "round_robin"
+    
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    
+    # Buffer Sizes
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "4k"
+    
+    # Health Checks
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-interval: "30s"
+    nginx.ingress.kubernetes.io/health-check-timeout: "10s"
+    
+    # Monitoring
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+    nginx.ingress.kubernetes.io/enable-rewrite-log: "false"
+    
+spec:
+  tls:
+  - hosts:
+    - api.imanipay.com
+    - api-staging.imanipay.com
+    secretName: imanipay-api-tls
+  
+  rules:
+  # Production API
+  - host: api.imanipay.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: imanipay-api-service
+            port:
+              number: 80
+  
+  # Staging API
+  - host: api-staging.imanipay.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: imanipay-api-service
+            port:
+              number: 80
+
+---
+# Ingress for specific API paths with different configurations
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: imanipay-api-auth-ingress
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: auth-ingress
+    app.kubernetes.io/part-of: imanipay-platform
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Stricter rate limiting for auth endpoints
+    nginx.ingress.kubernetes.io/rate-limit: "5"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "3"
+    
+    # Additional security for auth endpoints
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # Block common attack patterns
+      if ($request_uri ~* "/(wp-admin|wp-login|admin|login\.php)") {
+        return 444;
+      }
+      
+      # Additional rate limiting by user agent
+      if ($http_user_agent ~* "(bot|crawler|spider|scraper)") {
+        return 429;
+      }
+    
+spec:
+  tls:
+  - hosts:
+    - api.imanipay.com
+    secretName: imanipay-api-tls
+  
+  rules:
+  - host: api.imanipay.com
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: imanipay-api-service
+            port:
+              number: 80
+
+---
+# Ingress for monitoring endpoints (restricted access)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: imanipay-monitoring-ingress
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: monitoring-ingress
+    app.kubernetes.io/part-of: imanipay-platform
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Restrict access to monitoring endpoints
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    
+    # Basic authentication for monitoring
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: monitoring-auth
+    nginx.ingress.kubernetes.io/auth-realm: "ImaniPay Monitoring"
+    
+spec:
+  tls:
+  - hosts:
+    - monitoring.imanipay.com
+    secretName: imanipay-monitoring-tls
+  
+  rules:
+  - host: monitoring.imanipay.com
+    http:
+      paths:
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: imanipay-api-service
+            port:
+              number: 9090
+      - path: /health
+        pathType: Prefix
+        backend:
+          service:
+            name: imanipay-api-service
+            port:
+              number: 80
+
+---
+# Certificate for TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: imanipay-api-cert
+  namespace: imanipay
+  labels:
+    app.kubernetes.io/name: imanipay-blockchain-service
+    app.kubernetes.io/component: certificate
+    app.kubernetes.io/part-of: imanipay-platform
+spec:
+  secretName: imanipay-api-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - api.imanipay.com
+  - api-staging.imanipay.com
+  - monitoring.imanipay.com
+

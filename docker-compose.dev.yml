@@ -1,0 +1,179 @@
+# ImaniPay Blockchain Service - Development Environment
+# This file extends the base configuration for development
+
+version: '3.8'
+
+services:
+  # ========================================================================
+  # API Service - Development Configuration
+  # ========================================================================
+  api:
+    build:
+      target: development
+    image: imanipay-blockchain-service:dev
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql://dev_user:dev_pass@postgres:5432/imanipay_dev
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - JWT_REFRESH_TOKEN_EXPIRE_DAYS=30
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/venv  # Exclude virtual environment
+      - dev_logs:/app/logs
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app
+      --log-level debug
+    networks:
+      - imanipay-dev-network
+
+  # ========================================================================
+  # PostgreSQL - Development Configuration
+  # ========================================================================
+  postgres:
+    environment:
+      POSTGRES_DB: imanipay_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/dev-init.sql:/docker-entrypoint-initdb.d/dev-init.sql:ro
+    networks:
+      - imanipay-dev-network
+
+  # ========================================================================
+  # Redis - Development Configuration
+  # ========================================================================
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - imanipay-dev-network
+
+  # ========================================================================
+  # Development Tools
+  # ========================================================================
+  
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: imanipay-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@imanipay.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - imanipay-dev-network
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: imanipay-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - imanipay-dev-network
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: imanipay-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - imanipay-dev-network
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: imanipay-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # Web UI
+      - "14268:14268"  # HTTP collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - imanipay-dev-network
+
+# ========================================================================
+# Development Networks
+# ========================================================================
+networks:
+  imanipay-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# ========================================================================
+# Development Volumes
+# ========================================================================
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  dev_logs:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# ========================================================================
+# Development Usage:
+# ========================================================================
+#
+# Start development environment:
+# docker-compose -f docker-compose.dev.yml up -d
+#
+# View API logs:
+# docker-compose -f docker-compose.dev.yml logs -f api
+#
+# Access services:
+# - API: http://localhost:8000
+# - API Docs: http://localhost:8000/docs
+# - pgAdmin: http://localhost:5050
+# - Redis Commander: http://localhost:8081
+# - Mailhog: http://localhost:8025
+# - Jaeger: http://localhost:16686
+#
+# Run tests:
+# docker-compose -f docker-compose.dev.yml exec api pytest
+#
+# Access API container:
+# docker-compose -f docker-compose.dev.yml exec api bash
+#
+# Run database migrations:
+# docker-compose -f docker-compose.dev.yml exec api alembic upgrade head
+#
+# ========================================================================
+
