@@ -1,8 +1,5 @@
 # ImaniPay Blockchain Service - Base Docker Compose Configuration
 # This file contains the base services configuration
-
-version: '3.8'
-
 services:
   # ========================================================================
   # API Service
@@ -194,7 +191,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.25.0.0/16
 
 # ========================================================================
 # Volumes
