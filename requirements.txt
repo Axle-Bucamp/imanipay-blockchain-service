@@ -69,3 +69,5 @@ pytz==2023.3
 click==8.1.7
 rich==13.7.0
 
+# blockchain
+pyteal

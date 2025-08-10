@@ -8,7 +8,8 @@ security, and operational settings.
 
 import os
 from typing import Optional, List, Dict, Any
-from pydantic import BaseSettings, validator, Field
+from pydantic import validator, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings import SettingsConfigDict
 
 

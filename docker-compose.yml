@@ -61,8 +61,8 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-      - ./scripts/postgres.conf:/etc/postgresql/postgresql.conf:ro
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro # useless if sqlalchemy 
+      - ./scripts/postgres.conf:/etc/postgresql/postgresql.conf:ro # useless if sqlalchemy 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-imanipay} -d ${POSTGRES_DB:-imanipay}"]
       interval: 10s
