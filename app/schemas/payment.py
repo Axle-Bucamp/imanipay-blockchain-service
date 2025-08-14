@@ -13,8 +13,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, validator, EmailStr, ConfigDict
 from pydantic.types import PositiveFloat, PositiveInt
-from app.schemas import BaseSchema, PaymentMethodType, KYCStatus, TimestampMixin, RiskLevel
-
+from .base import BaseSchema, TimestampMixin
+from .enumerate import  KYCStatus, KYCStatus, PaymentMethodType, RiskLevel
 # ============================================================================
 # Payment Method Schemas
 # ============================================================================

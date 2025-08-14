@@ -60,6 +60,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.42b0",
     "opentelemetry-instrumentation-sqlalchemy>=0.42b0",
     "opentelemetry-instrumentation-redis>=0.42b0",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

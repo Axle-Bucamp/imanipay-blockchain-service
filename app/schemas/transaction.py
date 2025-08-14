@@ -13,8 +13,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, validator, EmailStr, ConfigDict
 from pydantic.types import PositiveFloat, PositiveInt
-from app.schemas import BaseSchema
-from app.schemas import TransactionType, TransactionStatus, TimestampMixin, PaginatedResponse
+from .base import TimestampMixin, PaginatedResponse, BaseSchema
+from .enumerate import TransactionType, TransactionStatus
 
 # ============================================================================
 # Transaction Schemas
