@@ -76,7 +76,7 @@ class EscrowContract:
             App.globalPut(self.STATE_DISPUTE_RAISED, Int(0)),
             
             # Store release conditions if provided
-            If(Int(7) < Len(Txn.application_args),
+            If(Int(7) < Int(8),  # Check if 8th argument exists
                 App.globalPut(self.STATE_RELEASE_CONDITIONS, Txn.application_args[7])
             ),
             

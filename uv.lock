@@ -618,6 +618,17 @@ wheels = [
 ]
 
 [[package]]
+name = "dotenv"
+version = "0.9.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dotenv" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892, upload-time = "2025-02-19T22:15:01.647Z" },
+]
+
+[[package]]
 name = "dparse"
 version = "0.6.4"
 source = { registry = "https://pypi.org/simple" }
@@ -956,6 +967,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "babel" },
     { name = "cryptography" },
+    { name = "dotenv" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "opentelemetry-api" },
@@ -972,6 +984,7 @@ dependencies = [
     { name = "pyotp" },
     { name = "pyteal" },
     { name = "python-dateutil" },
+    { name = "python-dotenv" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "python-multipart" },
     { name = "pytz" },
@@ -1024,6 +1037,7 @@ requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7.5" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.11.0" },
     { name = "cryptography", specifier = ">=41.0.7" },
+    { name = "dotenv", specifier = ">=0.9.9" },
     { name = "factory-boy", marker = "extra == 'test'", specifier = ">=3.3.0" },
     { name = "faker", marker = "extra == 'test'", specifier = ">=20.1.0" },
     { name = "fastapi", specifier = ">=0.104.1" },
@@ -1057,6 +1071,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.12.0" },
     { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.12.0" },
     { name = "python-dateutil", specifier = ">=2.8.2" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "pytz", specifier = ">=2023.3.post1" },

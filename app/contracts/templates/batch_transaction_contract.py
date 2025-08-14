@@ -66,13 +66,13 @@ class BatchTransactionContract:
             # Store configuration
             App.globalPut(self.STATE_AUTHORIZED_CALLER, Txn.sender()),
             App.globalPut(self.STATE_MAX_BATCH_SIZE, 
-                If(Int(0) < Len(Txn.application_args),
+                If(Int(0) < Int(1),  # Check if first argument exists
                     Btoi(Txn.application_args[0]),
                     self.MAX_BATCH_SIZE_DEFAULT
                 )
             ),
             App.globalPut(self.STATE_PLATFORM_ADDRESS,
-                If(Int(1) < Len(Txn.application_args),
+                If(Int(1) < Int(2),  # Check if second argument exists
                     Txn.application_args[1],
                     Txn.sender()
                 )

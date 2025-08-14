@@ -9,7 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
@@ -248,7 +248,7 @@ async def check_database_health() -> dict:
     try:
         async with get_async_session_context() as session:
             # Test basic connectivity
-            result = await session.execute("SELECT 1 as health_check")
+            result = await session.execute(text("SELECT 1 as health_check"))
             health_check = result.scalar()
             
             # Test connection pool status
@@ -329,7 +329,7 @@ def get_database_version() -> Optional[str]:
     try:
         with SessionLocal() as session:
             result = session.execute(
-                "SELECT version_num FROM alembic_version ORDER BY version_num DESC LIMIT 1"
+                text("SELECT version_num FROM alembic_version ORDER BY version_num DESC LIMIT 1")
             )
             version = result.scalar()
             return version
@@ -349,10 +349,11 @@ def check_database_schema() -> bool:
     try:
         # Check if all expected tables exist
         with SessionLocal() as session:
-            inspector = session.get_bind().dialect.get_table_names(session.get_bind())
+            inspector = inspect(session.get_bind())
+            existing_tables = inspector.get_table_names()
             expected_tables = [table.name for table in Base.metadata.tables.values()]
             
-            missing_tables = set(expected_tables) - set(inspector)
+            missing_tables = set(expected_tables) - set(existing_tables)
             if missing_tables:
                 logger.warning(f"Missing database tables: {missing_tables}")
                 return False
@@ -378,7 +379,7 @@ async def get_database_stats() -> dict:
     try:
         async with get_async_session_context() as session:
             # Get table sizes
-            table_stats = await session.execute("""
+            table_stats = await session.execute(text("""
                 SELECT 
                     schemaname,
                     tablename,
@@ -387,7 +388,7 @@ async def get_database_stats() -> dict:
                 FROM pg_tables 
                 WHERE schemaname = 'public'
                 ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
-            """)
+            """))
             
             tables = [
                 {
@@ -400,21 +401,21 @@ async def get_database_stats() -> dict:
             ]
             
             # Get database size
-            db_size = await session.execute("""
+            db_size = await session.execute(text("""
                 SELECT pg_size_pretty(pg_database_size(current_database())) as db_size,
                        pg_database_size(current_database()) as db_size_bytes
-            """)
+            """))
             db_size_row = db_size.fetchone()
             
             # Get connection stats
-            connection_stats = await session.execute("""
+            connection_stats = await session.execute(text("""
                 SELECT 
                     count(*) as total_connections,
                     count(*) FILTER (WHERE state = 'active') as active_connections,
                     count(*) FILTER (WHERE state = 'idle') as idle_connections
                 FROM pg_stat_activity 
                 WHERE datname = current_database()
-            """)
+            """))
             conn_stats = connection_stats.fetchone()
             
             return {

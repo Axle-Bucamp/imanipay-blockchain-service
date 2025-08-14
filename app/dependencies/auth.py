@@ -290,13 +290,13 @@ async def get_current_verified_user(
     Raises:
         HTTPException: If user is not verified
     """
-    if not current_user.email_verified:
+    if not bool(current_user.email_verified):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email verification required"
         )
     
-    if not current_user.phone_verified:
+    if not bool(current_user.phone_verified):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Phone verification required"
@@ -320,13 +320,13 @@ async def require_verified_user(
     Raises:
         HTTPException: If user is not verified
     """
-    if not current_user.email_verified:
+    if not bool(current_user.email_verified):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email verification required"
         )
     
-    if not current_user.phone_verified:
+    if not bool(current_user.phone_verified):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Phone verification required"

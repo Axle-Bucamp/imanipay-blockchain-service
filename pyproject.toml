@@ -63,6 +63,8 @@ dependencies = [
     "slowapi>=0.1.9",
     "algokit>=2.8.0",
     "pyteal>=0.27.0",
+    "dotenv>=0.9.9",
+    "python-dotenv>=1.1.1",
 ]
 
 [project.optional-dependencies]

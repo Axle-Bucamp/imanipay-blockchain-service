@@ -20,12 +20,19 @@ class WalletService:
         wallet_address = balance_request.wallet_address
         try:
             account_info = self.algod_client.account_info(wallet_address)
+            # Convert bytes to dict if needed
+            if isinstance(account_info, bytes):
+                import json
+                account_info = json.loads(account_info.decode('utf-8'))
+            
             balances: Dict[int, float] = {0: account_info.get("amount", 0) / 1_000_000}
 
             for asset in account_info.get("assets", []):
                 if "asset-id" in asset:
                     asset_id = asset["asset-id"]
                     asset_info = self.algod_client.asset_info(asset_id)
+                    if isinstance(asset_info, bytes):
+                        asset_info = json.loads(asset_info.decode('utf-8'))
                     decimals = asset_info.get("params", {}).get("decimals", 0)
                     balances[asset_id] = asset.get("amount", 0) / (10 ** decimals)
 
@@ -68,12 +75,14 @@ class WalletService:
         print("Address:", address)
         print("Private Key:", private_key)
         print("Mnemonic:", mnemonic_phrase)  # This is the one you must save securely.
+        from app.schemas.enumerate import WalletType
+        
         return WalletResponse(
             id=UUID("00000000-0000-0000-0000-000000000000"),
             user_id=UUID("cm9mmryqn0000iiacyvegcftm"),
             address=address, 
             private_key=private_key,
-            wallet_type="STANDARD",
+            wallet_type=WalletType.STANDARD,
             status="ACTIVE",
             is_multisig=False,
             algo_balance=0
