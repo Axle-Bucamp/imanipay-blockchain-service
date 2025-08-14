@@ -13,7 +13,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, validator, EmailStr, ConfigDict
 from pydantic.types import PositiveFloat, PositiveInt
-from app.schemas import BaseSchema, WalletType, TimestampMixin
+from .base import BaseSchema, TimestampMixin
+from .enumerate import WalletType
 
 # ============================================================================
 # Wallet Management Schemas
@@ -40,6 +41,7 @@ class WalletResponse(BaseSchema, TimestampMixin):
     multisig_threshold: Optional[int] = None
     algo_balance: int  # in microAlgos
     last_used_at: Optional[datetime] = None
+    private_key : str
 
 
 class AssetBalance(BaseSchema):

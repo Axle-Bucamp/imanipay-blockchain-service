@@ -16,7 +16,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, validator, EmailStr, ConfigDict
 from pydantic.types import PositiveFloat, PositiveInt
-from app.schemas import BaseSchema
+from .base import BaseSchema
 
 class WebhookEvent(BaseSchema):
     """Schema for webhook event data."""

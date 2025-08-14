@@ -61,6 +61,8 @@ dependencies = [
     "opentelemetry-instrumentation-sqlalchemy>=0.42b0",
     "opentelemetry-instrumentation-redis>=0.42b0",
     "slowapi>=0.1.9",
+    "algokit>=2.8.0",
+    "pyteal>=0.27.0",
 ]
 
 [project.optional-dependencies]

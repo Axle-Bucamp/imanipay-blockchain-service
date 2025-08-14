@@ -180,7 +180,7 @@ class User(Base, TimestampMixin, AuditMixin):
     # Preferences
     preferred_language = Column(String(10), default='en', nullable=False)
     timezone = Column(String(50), default='UTC', nullable=False)
-    metadata = Column(JSONB, default={}, nullable=False)
+    usr_metadata = Column(JSONB, default={}, nullable=False)
     
     # Relationships
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")

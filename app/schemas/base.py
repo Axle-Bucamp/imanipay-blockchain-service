@@ -34,8 +34,11 @@ class BaseSchema(BaseModel):
 
 class TimestampMixin(BaseModel):
     """Mixin for timestamp fields."""
-    created_at: datetime = Field(..., description="Creation timestamp")
-    updated_at: datetime = Field(..., description="Last update timestamp")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+
+    class Config:
+        from_attributes = True  # allows use with ORM objects
 
 
 class PaginationParams(BaseModel):

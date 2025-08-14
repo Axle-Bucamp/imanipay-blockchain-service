@@ -4,14 +4,16 @@ from algosdk.v2client import algod
 from app.core.config import settings
 from app.schemas import WalletResponse, BalanceResponse, BalanceRequest, ValidateWalletRequest, ValidateWalletResponse # Import the new schema
 from typing import Dict
+from uuid import UUID
+import time
 
 headers = {
-    "X-API-Key": settings.ALGORAND_API_KEY
+    "X-API-Key": settings.algorand.algod_token # TODO find api key endpoint for algorand
 }
 
 class WalletService:
     def __init__(self):
-        self.algod_client = algod.AlgodClient(settings.ALGORAND_API_KEY, settings.ALGORAND_NODE_URL, headers=headers)
+        self.algod_client = algod.AlgodClient(settings.algorand.algod_token, settings.algorand.algod_address, headers=headers)
 
     async def get_balance(self, balance_request: BalanceRequest) -> BalanceResponse:
         """Retrieves the balance of a given Algorand wallet address directly from the blockchain."""
@@ -23,7 +25,7 @@ class WalletService:
             for asset in account_info.get("assets", []):
                 if "asset-id" in asset:
                     asset_id = asset["asset-id"]
-                    asset_info = await self.algod_client.asset_info(asset_id).do()
+                    asset_info = self.algod_client.asset_info(asset_id)
                     decimals = asset_info.get("params", {}).get("decimals", 0)
                     balances[asset_id] = asset.get("amount", 0) / (10 ** decimals)
 
@@ -36,7 +38,7 @@ class WalletService:
         Validates if a given Algorand wallet address is valid and exists on the blockchain.
         """
         print(f"Validating wallet address: {validate_request.wallet_address}")  # Log the wallet address for debugging
-        print(f"Validating wallet address: {settings.ALGORAND_NODE_URL}")  # Log the wallet address for debugging
+        print(f"Validating wallet address: {settings.algorand.algod_address}")  # Log the wallet address for debugging
         wallet_address = validate_request.wallet_address
         try:
             account_info = self.algod_client.account_info(wallet_address)
@@ -66,5 +68,14 @@ class WalletService:
         print("Address:", address)
         print("Private Key:", private_key)
         print("Mnemonic:", mnemonic_phrase)  # This is the one you must save securely.
-        return WalletResponse(wallet_address=address, private_key=private_key, user_id="cm9mmryqn0000iiacyvegcftm") # Include private_key in the response
+        return WalletResponse(
+            id=UUID("00000000-0000-0000-0000-000000000000"),
+            user_id=UUID("cm9mmryqn0000iiacyvegcftm"),
+            address=address, 
+            private_key=private_key,
+            wallet_type="STANDARD",
+            status="ACTIVE",
+            is_multisig=False,
+            algo_balance=0
+        )
 

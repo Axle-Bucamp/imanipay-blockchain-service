@@ -4,11 +4,11 @@ from app.core.config import settings
 from app.api import wallets, transactions # escrow , mobile_money
 
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.PROJECT_NAME)
+    app = FastAPI(title=settings.project_name)
     app.include_router(wallets.router)    
-    print(f"PROJECT_NAME: {settings.PROJECT_NAME}")
-    print(f"ALGORAND_NODE_URL: {settings.ALGORAND_NODE_URL}")
-    print(f"ALGORAND_API_KEY: {settings.ALGORAND_API_KEY}")
+    print(f"PROJECT_NAME: {settings.project_name}")
+    print(f"ALGORAND_NODE_URL: {settings.algorand.algod_address}")
+    print(f"ALGORAND_API_KEY: {settings.algorand.algod_token}")
 
     app.include_router(transactions.router)
     # app.include_router(escrow.router)

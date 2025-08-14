@@ -275,6 +275,36 @@ async def require_admin(
     return current_user
 
 
+async def get_current_verified_user(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Get current verified user (email and phone verified).
+    
+    Args:
+        current_user: Current user
+        
+    Returns:
+        User: Verified user
+        
+    Raises:
+        HTTPException: If user is not verified
+    """
+    if not current_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email verification required"
+        )
+    
+    if not current_user.phone_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Phone verification required"
+        )
+    
+    return current_user
+
+
 async def require_verified_user(
     current_user: User = Depends(get_current_active_user)
 ) -> User:
@@ -508,7 +538,7 @@ async def get_development_user() -> Dict[str, Any]:
     from app.core.config import get_settings
     settings = get_settings()
     
-    if settings.environment != "development":
+    if settings.app.environment != "development":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Development endpoint not available"

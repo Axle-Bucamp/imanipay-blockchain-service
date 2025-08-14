@@ -10,10 +10,10 @@ from pyteal import (
     InnerTxnBuilder, Global, Addr, TxnField, Btoi, Bytes, App,
     If, And, Or, Not, Cond, Subroutine, TealType, Expr,
     ScratchVar, For, While, Break, Continue, Approve, Reject,
-    OnCall, OnCallBegin, OnCallEnd, Substring, Len, Concat,
-    Pop, Dup, Swap, Select, SetBit, GetBit, BytesAdd, BytesSub,
+    Substring, Len, Concat,
+    Pop, SetBit, GetBit, BytesAdd,
     BytesMul, BytesDiv, BytesMod, BytesAnd, BytesOr, BytesXor,
-    BytesNot, BytesEq, BytesNe, BytesLt, BytesLe, BytesGt, BytesGe,
+    BytesNot, BytesEq, BytesLt, BytesLe, BytesGt, BytesGe,
     Extract, Replace, Base64Decode, JsonRef, Keccak256, Sha256,
     Sha512_256, Ed25519Verify, EcdsaVerify, EcdsaRecover
 )
@@ -76,7 +76,7 @@ class EscrowContract:
             App.globalPut(self.STATE_DISPUTE_RAISED, Int(0)),
             
             # Store release conditions if provided
-            If(Len(Txn.application_args) > Int(7),
+            If(Int(7) < Len(Txn.application_args),
                 App.globalPut(self.STATE_RELEASE_CONDITIONS, Txn.application_args[7])
             ),
             
@@ -206,12 +206,12 @@ class EscrowContract:
         # Main program logic
         program = Cond(
             [Txn.application_id() == Int(0), Return(Int(1))],  # Creation
-            [Txn.on_call() == self.METHOD_INITIALIZE, initialize_escrow],
-            [Txn.on_call() == self.METHOD_RELEASE, release_funds],
-            [Txn.on_call() == self.METHOD_DISPUTE, raise_dispute],
-            [Txn.on_call() == self.METHOD_RESOLVE, resolve_dispute],
-            [Txn.on_call() == self.METHOD_CANCEL, cancel_escrow],
-            [Txn.on_call() == self.METHOD_EXTEND_DEADLINE, extend_deadline],
+            [Txn.application_args[0] == self.METHOD_INITIALIZE, initialize_escrow],
+            [Txn.application_args[0] == self.METHOD_RELEASE, release_funds],
+            [Txn.application_args[0] == self.METHOD_DISPUTE, raise_dispute],
+            [Txn.application_args[0] == self.METHOD_RESOLVE, resolve_dispute],
+            [Txn.application_args[0] == self.METHOD_CANCEL, cancel_escrow],
+            [Txn.application_args[0] == self.METHOD_EXTEND_DEADLINE, extend_deadline],
             [Global.latest_timestamp() >= App.globalGet(self.STATE_DEADLINE), handle_expiry]
         )
         

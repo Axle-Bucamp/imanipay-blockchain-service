@@ -30,7 +30,7 @@ class TransactionCreate(BaseSchema):
     payment_method_id: Optional[UUID] = Field(None, description="Payment method ID")
     description: Optional[str] = Field(None, max_length=500, description="Transaction description")
     reference: Optional[str] = Field(None, max_length=255, description="External reference")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    trx_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
 
 class TransactionStep(BaseSchema):

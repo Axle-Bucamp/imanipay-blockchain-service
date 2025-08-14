@@ -10,7 +10,7 @@ from pyteal import (
     InnerTxnBuilder, Global, Addr, TxnField, Btoi, Bytes, App,
     If, And, Or, Not, Cond, Subroutine, TealType, Expr,
     ScratchVar, For, While, Break, Continue, Approve, Reject,
-    OnCall, OnCallBegin, OnCallEnd, Substring, Len, Concat,
+    Substring, Len, Concat,
     Extract, Replace, Keccak256, Sha256, Itob, Gtxn
 )
 
@@ -66,13 +66,13 @@ class BatchTransactionContract:
             # Store configuration
             App.globalPut(self.STATE_AUTHORIZED_CALLER, Txn.sender()),
             App.globalPut(self.STATE_MAX_BATCH_SIZE, 
-                If(Len(Txn.application_args) > Int(0),
+                If(Int(0) < Len(Txn.application_args),
                     Btoi(Txn.application_args[0]),
                     self.MAX_BATCH_SIZE_DEFAULT
                 )
             ),
             App.globalPut(self.STATE_PLATFORM_ADDRESS,
-                If(Len(Txn.application_args) > Int(1),
+                If(Int(1) < Len(Txn.application_args),
                     Txn.application_args[1],
                     Txn.sender()
                 )
@@ -187,14 +187,14 @@ class BatchTransactionContract:
         # Main program logic
         program = Cond(
             [Txn.application_id() == Int(0), Return(Int(1))],  # Creation
-            [Txn.on_call() == self.METHOD_INITIALIZE, initialize_contract],
-            [Txn.on_call() == self.METHOD_CREATE_BATCH, create_batch],
-            [Txn.on_call() == self.METHOD_EXECUTE_BATCH, execute_batch],
-            [Txn.on_call() == self.METHOD_CANCEL_BATCH, cancel_batch],
-            [Txn.on_call() == self.METHOD_EXECUTE_PAYMENT_BATCH, execute_payment_batch],
-            [Txn.on_call() == self.METHOD_EXECUTE_ASSET_BATCH, execute_asset_batch],
-            [Txn.on_call() == self.METHOD_EXECUTE_MIXED_BATCH, execute_mixed_batch],
-            [Txn.on_call() == self.METHOD_EXECUTE_CROSS_BORDER_BATCH, execute_cross_border_batch]
+            [Txn.application_args[0] == self.METHOD_INITIALIZE, initialize_contract],
+            [Txn.application_args[0] == self.METHOD_CREATE_BATCH, create_batch],
+            [Txn.application_args[0] == self.METHOD_EXECUTE_BATCH, execute_batch],
+            [Txn.application_args[0] == self.METHOD_CANCEL_BATCH, cancel_batch],
+            [Txn.application_args[0] == self.METHOD_EXECUTE_PAYMENT_BATCH, execute_payment_batch],
+            [Txn.application_args[0] == self.METHOD_EXECUTE_ASSET_BATCH, execute_asset_batch],
+            [Txn.application_args[0] == self.METHOD_EXECUTE_MIXED_BATCH, execute_mixed_batch],
+            [Txn.application_args[0] == self.METHOD_EXECUTE_CROSS_BORDER_BATCH, execute_cross_border_batch]
         )
         
         return program

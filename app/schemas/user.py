@@ -8,13 +8,13 @@ for the payment platform API endpoints.
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, Field, validator, EmailStr, ConfigDict, constr
 from pydantic.types import PositiveFloat, PositiveInt
-from app.schemas import BaseSchema, UserStatus, KYCStatus, TimestampMixin
-
+from .base import TimestampMixin, BaseSchema
+from .enumerate import UserStatus, KYCStatus
 # ============================================================================
 # User Management Schemas
 # ============================================================================
@@ -78,17 +78,16 @@ class UserResponse(BaseSchema, TimestampMixin):
     profile: Optional[UserProfile] = None
 
 
-
 # --- Authentication ---
 class UserLogin(BaseModel):
     email: EmailStr
-    password: constr(min_length=8)
+    password: Annotated[str, constr(min_length=8)]
     mfa_code: Optional[str] = None
 
 
 class UserRegistration(BaseModel):
     email: EmailStr
-    password: constr(min_length=8)
+    password: Annotated[str, constr(min_length=8)]
     full_name: Optional[str] = None
 
 
