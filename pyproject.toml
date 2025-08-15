@@ -35,40 +35,37 @@ dependencies = [
     # Core FastAPI and ASGI
     "fastapi>=0.104.1",
     "uvicorn[standard]>=0.24.0",
-    
     # Algorand SDK and Smart Contracts
     "py-algorand-sdk>=2.6.0",
     "pyteal>=0.25.0",
-    
     # Database and ORM (Simplified)
     "sqlalchemy>=2.0.23",
     "alembic>=1.12.1",
     "asyncpg>=0.29.0",
-    
     # Data Validation (Pydantic v2)
-    "pydantic>=2.5.0",
+    "pydantic[email]>=2.5.0",
     "pydantic-settings>=2.1.0",
-    
+    "setuptools",
+    "wheel",
+    "algokit-utils",
+    "aiosqlite",
     # HTTP Client
     "httpx>=0.25.2",
-    
     # Environment and Configuration
     "python-dotenv>=1.0.0",
-    
     # Rate Limiting
     "slowapi>=0.1.9",
-    
     # Logging
     "structlog>=23.2.0",
     "rich>=13.7.0",
-    
     # Utilities
     "python-dateutil>=2.8.2",
     "click>=8.1.7",
-    
     # Basic Security
     "cryptography>=41.0.8",
     "python-multipart>=0.0.6",
+    "setuptools>=80.9.0",
+    "wheel>=0.45.1",
 ]
 
 [project.optional-dependencies]

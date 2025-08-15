@@ -6,6 +6,7 @@ from app.schemas import WalletResponse, BalanceResponse, BalanceRequest, Validat
 from typing import Dict
 from uuid import UUID
 import time
+import json
 
 settings = get_settings()
 
@@ -24,7 +25,6 @@ class WalletService:
             account_info = self.algod_client.account_info(wallet_address)
             # Convert bytes to dict if needed
             if isinstance(account_info, bytes):
-                import json
                 account_info = json.loads(account_info.decode('utf-8'))
             
             balances: Dict[int, float] = {0: account_info.get("amount", 0) / 1_000_000}
