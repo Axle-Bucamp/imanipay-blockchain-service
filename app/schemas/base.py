@@ -40,9 +40,6 @@ class TimestampMixin(BaseModel):
     class Config:
         from_attributes = True  # allows use with ORM objects
 
-class AuditMixin(BaseModel):
-    """Mixin for timestamp fields."""
-
 class PaginationParams(BaseModel):
     """Pagination parameters for list endpoints."""
     page: PositiveInt = Field(default=1, description="Page number")

@@ -22,7 +22,6 @@ from sqlalchemy.sql import func
 
 # Import from correct schema module
 from .schemas.enumerate import TransactionStatus as PydanticTransactionStatus
-from app.schemas.base import AuditMixin
 from sqlalchemy.dialects import postgresql
 
 # ============================================================================
@@ -187,7 +186,7 @@ class RiskLevelEnum(enum.Enum):
 # User Management Models
 # ============================================================================
 
-class User(Base, TimestampMixin, AuditMixin):
+class User(Base, TimestampMixin):
     """User account model."""
     
     __tablename__ = "users"
@@ -243,7 +242,7 @@ class User(Base, TimestampMixin, AuditMixin):
         return email.lower()
 
 
-class UserProfile(Base, TimestampMixin, AuditMixin):
+class UserProfile(Base, TimestampMixin):
     """User profile model with personal information."""
     
     __tablename__ = "user_profiles"
@@ -335,7 +334,7 @@ class UserSession(Base, TimestampMixin):
 # Payment Method Models
 # ============================================================================
 
-class PaymentMethod(Base, TimestampMixin, AuditMixin):
+class PaymentMethod(Base, TimestampMixin):
     """Payment method model for fiat on/off-ramps."""
     
     __tablename__ = "payment_methods"
@@ -816,7 +815,7 @@ class NetworkConfiguration(Base, TimestampMixin):
 
 
 
-class KYCVerification(Base, TimestampMixin, AuditMixin):
+class KYCVerification(Base, TimestampMixin):
     """KYC verification model."""
     
     __tablename__ = "kyc_verifications"
