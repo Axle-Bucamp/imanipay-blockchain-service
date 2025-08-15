@@ -18,37 +18,18 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.database import get_async_session_context
-# from app.models import (
-#     User, UserProfile, KYCVerification, AMLScreening, Transaction,
-#     KYCStatusEnum, RiskLevelEnum, TransactionTypeEnum
-# )
-from app.models_old import KYCVerification
-from app.schemas import (
-    KYCVerificationRequest, KYCVerificationResponse, RiskAssessment
+from app.models import (
+     User, UserProfile, KYCVerification, AMLScreening, Transaction
 )
+from app.schemas import (
+    KYCVerificationRequest, KYCVerificationResponse, RiskAssessment, RiskLevel, TransactionType
+)
+
+from app.schemas.enumerate import KYCStatus
 from models import AMLScreening, Transaction, User
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-# Placeholder enums for missing models
-class KYCStatusEnum(enum.Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    EXPIRED = "expired"
-    IN_PROGRESS =  "progress"
-
-class RiskLevelEnum(enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
-class TransactionTypeEnum(enum.Enum):
-    CROSS_BORDER_PAYMENT = "cross_border_payment"
-    LOCAL_PAYMENT = "local_payment"
-    CRYPTO_TRANSFER = "crypto_transfer"
-
 
 class ComplianceError(Exception):
     """Base exception for compliance errors."""
@@ -139,9 +120,9 @@ class ComplianceService:
                         and_(
                             KYCVerification.user_id == user_id,
                             KYCVerification.status.in_([
-                                KYCStatusEnum.IN_PROGRESS,
-                                KYCStatusEnum.PENDING_REVIEW,
-                                KYCStatusEnum.APPROVED
+                                KYCStatus.IN_PROGRESS,
+                                KYCStatus.PENDING_REVIEW,
+                                KYCStatus.APPROVED
                             ])
                         )
                     )
@@ -149,14 +130,14 @@ class ComplianceService:
                 )
                 
                 existing = existing_kyc.scalar_one_or_none()
-                if existing and existing.status == KYCStatusEnum.APPROVED:
+                if existing and existing.status == KYCStatus.APPROVED:
                     raise KYCError("User already has approved KYC verification")
                 
                 # Create new KYC verification
                 kyc_verification = KYCVerification(
                     user_id=user_id,
                     verification_level=verification_request.verification_level,
-                    status=KYCStatusEnum.IN_PROGRESS,
+                    status=KYCStatus.IN_PROGRESS,
                     provider=settings.compliance.kyc_provider,
                     documents_submitted=verification_request.documents,
                     verification_data=verification_request.personal_info,
@@ -171,7 +152,7 @@ class ComplianceService:
                 await db_session.execute(
                     update(User)
                     .where(User.id == user_id)
-                    .values(kyc_status=KYCStatusEnum.IN_PROGRESS)
+                    .values(kyc_status=KYCStatus.IN_PROGRESS)
                 )
                 await db_session.commit()
                 
@@ -200,7 +181,7 @@ class ComplianceService:
     async def update_kyc_status(
         self,
         kyc_id: UUID,
-        status: KYCStatusEnum,
+        status: KYCStatus,
         reviewer_notes: Optional[str] = None,
         rejection_reasons: Optional[List[str]] = None,
         session: Optional[AsyncSession] = None
@@ -238,11 +219,11 @@ class ComplianceService:
                 kyc_verification.rejection_reasons = rejection_reasons or []
                 kyc_verification.reviewed_at = datetime.utcnow()
                 
-                if status == KYCStatusEnum.APPROVED:
+                if status == KYCStatus.APPROVED:
                     kyc_verification.approved_at = datetime.utcnow()
                     # Set expiration (e.g., 2 years)
                     kyc_verification.expires_at = datetime.utcnow() + timedelta(days=730)
-                elif status == KYCStatusEnum.REJECTED:
+                elif status == KYCStatus.REJECTED:
                     kyc_verification.rejected_at = datetime.utcnow()
                 
                 # Update user KYC status
@@ -587,7 +568,7 @@ class ComplianceService:
                 return RiskAssessment(
                     user_id=user_id,
                     risk_score=risk_score,
-                    risk_level=risk_level,
+                    risk_level=risk_level, 
                     risk_factors=risk_factors,
                     assessment_date=datetime.utcnow(),
                     next_review_date=next_review_date
@@ -610,7 +591,7 @@ class ComplianceService:
     async def check_transaction_compliance(
         self,
         user_id: UUID,
-        transaction_type: TransactionTypeEnum,
+        transaction_type: TransactionType,
         amount: Decimal,
         currency: str,
         session: Optional[AsyncSession] = None
@@ -651,7 +632,7 @@ class ComplianceService:
                 raise ComplianceError("User not found")
             
             # Check KYC requirements
-            if user.kyc_status != KYCStatusEnum.APPROVED:
+            if user.kyc_status != KYCStatus.APPROVED:
                 if amount > Decimal('1000'):  # Require KYC for amounts > $1000
                     compliance_results["requires_kyc"] = True
                     compliance_results["approved"] = False
@@ -672,10 +653,10 @@ class ComplianceService:
             risk_assessment = await self.assess_user_risk(user_id, db_session)
             compliance_results["risk_level"] = risk_assessment.risk_level.value
             
-            if risk_assessment.risk_level == RiskLevelEnum.HIGH:
+            if risk_assessment.risk_level == RiskLevel.HIGH:
                 compliance_results["requires_aml_screening"] = True
             
-            if risk_assessment.risk_level == RiskLevelEnum.CRITICAL:
+            if risk_assessment.risk_level == RiskLevel.CRITICAL:
                 compliance_results["approved"] = False
                 compliance_results["restrictions"].append("Account flagged for manual review")
             
@@ -713,7 +694,7 @@ class ComplianceService:
         async def _check_cross_border(db_session: AsyncSession) -> Dict[str, Any]:
             # Start with basic transaction compliance
             compliance_results = await self.check_transaction_compliance(
-                user_id, TransactionTypeEnum.CROSS_BORDER_PAYMENT, amount, source_currency, db_session
+                user_id, TransactionType.CROSS_BORDER_PAYMENT, amount, source_currency, db_session
             )
             
             # Additional cross-border checks
@@ -815,7 +796,7 @@ class ComplianceService:
             risk_score += 40
         
         # Transaction type risk
-        if transaction.transaction_type == TransactionTypeEnum.CROSS_BORDER_PAYMENT:
+        if transaction.transaction_type == TransactionType.CROSS_BORDER_PAYMENT:
             risk_score += 10
         
         return min(risk_score, 100)
@@ -854,9 +835,9 @@ class ComplianceService:
     
     def _assess_kyc_completeness(self, user: User) -> float:
         """Assess KYC completeness risk."""
-        if user.kyc_status == KYCStatusEnum.APPROVED:
+        if user.kyc_status == KYCStatus.APPROVED:
             return 0.0
-        elif user.kyc_status == KYCStatusEnum.IN_PROGRESS:
+        elif user.kyc_status == KYCStatus.IN_PROGRESS:
             return 0.3
         else:
             return 0.8
@@ -931,20 +912,20 @@ class ComplianceService:
         else:
             return 0.1
     
-    def _determine_risk_level(self, risk_score: int) -> RiskLevelEnum:
+    def _determine_risk_level(self, risk_score: int) -> RiskLevel:
         """Determine risk level from score."""
         if risk_score >= settings.compliance.high_risk_threshold:
-            return RiskLevelEnum.HIGH
+            return RiskLevel.HIGH
         elif risk_score >= settings.compliance.medium_risk_threshold:
-            return RiskLevelEnum.MEDIUM
+            return RiskLevel.MEDIUM
         else:
-            return RiskLevelEnum.LOW
+            return RiskLevel.LOW
     
-    def _calculate_next_review_date(self, risk_level: RiskLevelEnum) -> datetime:
+    def _calculate_next_review_date(self, risk_level: RiskLevel) -> datetime:
         """Calculate next review date based on risk level."""
-        if risk_level == RiskLevelEnum.HIGH:
+        if risk_level == RiskLevel.HIGH:
             return datetime.utcnow() + timedelta(days=30)  # Monthly review
-        elif risk_level == RiskLevelEnum.MEDIUM:
+        elif risk_level == RiskLevel.MEDIUM:
             return datetime.utcnow() + timedelta(days=90)  # Quarterly review
         else:
             return datetime.utcnow() + timedelta(days=365)  # Annual review

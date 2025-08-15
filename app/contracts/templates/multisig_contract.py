@@ -216,15 +216,15 @@ class MultiSigContract:
         # Main program logic
         program = Cond(
             [Txn.application_id() == Int(0), Return(Int(1))],  # Creation
-            [Txn.application_args[0] == Bytes(self.METHOD_INITIALIZE), initialize_wallet],
-            [Txn.application_args[0] == Bytes(self.METHOD_ADD_SIGNER), add_signer],
-            [Txn.application_args[0] == Bytes(self.METHOD_REMOVE_SIGNER), remove_signer],
-            [Txn.application_args[0] == Bytes(self.METHOD_UPDATE_THRESHOLD), update_threshold],
-            [Txn.application_args[0] == Bytes(self.METHOD_PROPOSE_TRANSACTION), propose_transaction],
-            [Txn.application_args[0] == Bytes(self.METHOD_SIGN_PROPOSAL), sign_proposal],
-            [Txn.application_args[0] == Bytes(self.METHOD_EXECUTE_PROPOSAL), execute_proposal],
-            [Txn.application_args[0] == Bytes(self.METHOD_CANCEL_PROPOSAL), cancel_proposal],
-            [Txn.application_args[0] == Bytes(self.METHOD_BATCH_EXECUTE), batch_execute]
+            [Txn.application_args[0] == Bytes(self.METHOD_INITIALIZE.byte_str), initialize_wallet],
+            [Txn.application_args[0] == Bytes(self.METHOD_ADD_SIGNER.byte_str), add_signer],
+            [Txn.application_args[0] == Bytes(self.METHOD_REMOVE_SIGNER.byte_str), remove_signer],
+            [Txn.application_args[0] == Bytes(self.METHOD_UPDATE_THRESHOLD.byte_str), update_threshold],
+            [Txn.application_args[0] == Bytes(self.METHOD_PROPOSE_TRANSACTION.byte_str), propose_transaction],
+            [Txn.application_args[0] == Bytes(self.METHOD_SIGN_PROPOSAL.byte_str), sign_proposal],
+            [Txn.application_args[0] == Bytes(self.METHOD_EXECUTE_PROPOSAL.byte_str), execute_proposal],
+            [Txn.application_args[0] == Bytes(self.METHOD_CANCEL_PROPOSAL.byte_str), cancel_proposal],
+            [Txn.application_args[0] == Bytes(self.METHOD_BATCH_EXECUTE.byte_str), batch_execute]
         )
         
         return program
@@ -483,17 +483,17 @@ class MultiSigContract:
         # Simplified implementation - would iterate through proposal IDs in args
         return Seq([
             # Execute first proposal
-            If(Txn.num_app_args() > Int(1),
+            If(Txn.application_args.length() > Int(1),
                 self._execute_proposal_transaction(Btoi(Txn.application_args[1]))
             ),
             
             # Execute second proposal
-            If(Txn.num_app_args() > Int(2),
+            If(Txn.application_args.length() > Int(2),
                 self._execute_proposal_transaction(Btoi(Txn.application_args[2]))
             ),
             
             # Execute third proposal
-            If(Txn.num_app_args() > Int(3),
+            If(Txn.application_args.length() > Int(3),
                 self._execute_proposal_transaction(Btoi(Txn.application_args[3]))
             )
         ])

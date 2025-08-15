@@ -181,6 +181,11 @@ class AppSettings(BaseSettings):
     api_prefix: str = Field(default="/api/v1", description="API prefix")
     docs_url: Optional[str] = Field(default="/docs", description="Documentation URL")
     redoc_url: Optional[str] = Field(default="/redoc", description="ReDoc URL")
+
+    enable_registration: bool = Field(default=True)
+    enable_kyc: bool = Field(default=True)
+    enable_cross_border: bool = Field(default=True)
+    enable_fiat_onramp: bool = Field(default=True)
     
     @field_validator('environment')
     @classmethod

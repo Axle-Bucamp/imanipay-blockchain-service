@@ -156,7 +156,7 @@ class EnhancedWalletService:
                         self.logger.warning(f"Failed to opt into USDC for wallet {wallet.id}: {e}")
                 
                 # Update balance from blockchain
-                await self._update_wallet_balance(wallet.id, db_session)
+                await self._update_wallet_balance(UUID(wallet.id), db_session)
                 
                 self.logger.info(f"Created wallet {wallet.id} for user {user_id}")
                 
@@ -394,7 +394,7 @@ class EnhancedWalletService:
             total_value_usd = await self._calculate_portfolio_value_usd(assets)
             
             return WalletBalanceResponse(
-                wallet_id=wallet.id,
+                wallet_id=UUID(wallet.id),
                 address=wallet.address,
                 algo_balance=wallet.algo_balance,
                 assets=asset_balances,

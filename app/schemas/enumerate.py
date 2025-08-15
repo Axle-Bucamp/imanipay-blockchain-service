@@ -68,6 +68,11 @@ class PaymentMethodType(str, Enum):
     CRYPTO_WALLET = "crypto_wallet"
     FIAT_TO_CRYPTO = "fiat_to_crypto"
 
+class PaymentMethodStatus(str, Enum):
+    """Transaction status enumeration."""
+    ACTIVE = "active"
+    UNACTIVE = "unactive"
+
 
 class WalletType(str, Enum):
     """Wallet type enumeration."""
@@ -84,3 +89,51 @@ class RiskLevel(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
+class WalletStatus(str, Enum):
+    """Wallet status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    FROZEN = "frozen"
+
+# ============================================================================
+# Enumerations
+# ============================================================================
+
+class ContractType(str,Enum):
+    """Smart contract type enumeration."""
+    ESCROW = "escrow"
+    MULTISIG = "multisig"
+    BATCH_PROCESSOR = "batch_processor"
+    PAYMENT_SPLITTER = "payment_splitter"
+
+
+class ContractStatus(str,Enum):
+    """Smart contract status enumeration."""
+    DEPLOYED = "deployed"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    TERMINATED = "terminated"
+
+
+class Network(str, Enum):
+    """Blockchain network enumeration."""
+    MAINNET = "mainnet"
+    TESTNET = "testnet"
+    BETANET = "betanet"
+    LOCALNET = "localnet"
+
+class Gender(str, Enum):
+    """ gender """
+    MALE = "male"
+    FEMALE = "female"
+    NEUTRAL = "neutral"
+
+class DeviceType(str, Enum):
+    PHONE = "phone"
+    LAPTOP = "laptop"
+
+class LoginMethod(str, Enum):
+    GOOGLE = "google"
+    MAIL = "mail"
+    OAUTH = "oauth"

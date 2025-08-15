@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 from datetime import datetime, timedelta
 import enum
 
-from sqlalchemy import select, update, and_, or_
+from sqlalchemy import Enum, select, update, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -20,9 +20,12 @@ from app.core.config import get_settings
 from app.database import get_async_session_context, database_transaction
 from app.models import (
      User, Wallet, Transaction, PaymentMethod, ExchangeRate,
-     TransactionStep, TransactionTypeEnum, TransactionStatusEnum,
-     UserStatusEnum, PaymentMethodStatusEnum
+     TransactionStep, 
 )
+
+from app.schemas.enumerate import (TransactionType, TransactionStatus,
+     UserStatus, PaymentMethodStatus)
+
 from app.schemas import (
     FiatToCryptoRequest, CryptoToFiatRequest, CrossBorderPaymentRequest,
     TransactionResponse, ConversionQuote, FeeCalculation, ExchangeRate as ExchangeRateSchema
@@ -107,7 +110,7 @@ class PaymentProcessorService:
             # Perform compliance checks
             await self.compliance_service.check_transaction_compliance(
                 user_id=user_id,
-                transaction_type=TransactionTypeEnum.FIAT_TO_CRYPTO,            
+                transaction_type=TransactionType.FIAT_TO_CRYPTO,            
                 amount=Decimal(str(request.amount)),
                 currency=request.fiat_currency,
                 session=db_session
@@ -124,8 +127,8 @@ class PaymentProcessorService:
             # Create transaction record
             transaction = Transaction(
                 user_id=user_id,
-                transaction_type=TransactionTypeEnum.FIAT_TO_CRYPTO,
-                status=TransactionStatusEnum.PENDING,
+                transaction_type=TransactionType.FIAT_TO_CRYPTO,
+                status=TransactionStatus.PENDING,
                 amount=request.amount,
                 currency=request.fiat_currency,
                 fee_amount=quote.fees.total_fee,
@@ -155,13 +158,13 @@ class PaymentProcessorService:
                 )
                 
                 # Update transaction status
-                transaction.status = TransactionStatusEnum.COMPLETED.value
+                transaction.status = TransactionStatus.COMPLETED.value
                 transaction.completed_at = datetime.utcnow()
                 await db_session.commit()
                 
             except Exception as e:
                 # Update transaction status to failed
-                transaction.status = TransactionStatusEnum.FAILED.value
+                transaction.status = TransactionStatus.FAILED.value
                 transaction.failed_at = datetime.utcnow()
                 await db_session.commit()
                 
@@ -222,7 +225,7 @@ class PaymentProcessorService:
             # Perform compliance checks
             await self.compliance_service.check_transaction_compliance(
                 user_id=user_id,
-                transaction_type=TransactionTypeEnum.CRYPTO_TO_FIAT,
+                transaction_type=TransactionType.CRYPTO_TO_FIAT,
                 amount=Decimal(str(request.amount)),
                 currency=request.crypto_currency,
                 session=db_session
@@ -239,8 +242,8 @@ class PaymentProcessorService:
             # Create transaction record
             transaction = Transaction(
                 user_id=user_id,
-                transaction_type=TransactionTypeEnum.CRYPTO_TO_FIAT,
-                status=TransactionStatusEnum.PENDING,
+                transaction_type=TransactionType.CRYPTO_TO_FIAT,
+                status=TransactionStatus.PENDING,
                 amount=request.amount,
                 currency=request.crypto_currency,
                 fee_amount=quote.fees.total_fee,
@@ -270,13 +273,13 @@ class PaymentProcessorService:
                 )
                 
                 # Update transaction status
-                transaction.status = TransactionStatusEnum.COMPLETED.value
+                transaction.status = TransactionStatus.COMPLETED.value
                 transaction.completed_at = datetime.utcnow()
                 await db_session.commit()
                 
             except Exception as e:
                 # Update transaction status to failed
-                transaction.status = TransactionStatusEnum.FAILED.value
+                transaction.status = TransactionStatus.FAILED.value
                 transaction.failed_at = datetime.utcnow()
                 await db_session.commit()
                 
@@ -342,8 +345,8 @@ class PaymentProcessorService:
             # Create transaction record
             transaction = Transaction(
                 user_id=user_id,
-                transaction_type=TransactionTypeEnum.CROSS_BORDER_PAYMENT,
-                status=TransactionStatusEnum.PENDING,
+                transaction_type=TransactionType.CROSS_BORDER_PAYMENT,
+                status=TransactionStatus.PENDING,
                 amount=request.amount,
                 currency=request.source_currency,
                 fee_amount=quote.fees.total_fee,
@@ -374,13 +377,13 @@ class PaymentProcessorService:
                 )
                 
                 # Update transaction status
-                transaction.status = TransactionStatusEnum.COMPLETED.value
+                transaction.status = TransactionStatus.COMPLETED.value
                 transaction.completed_at = datetime.utcnow()
                 await db_session.commit()
                 
             except Exception as e:
                 # Update transaction status to failed
-                transaction.status = TransactionStatusEnum.FAILED.value
+                transaction.status = TransactionStatus.FAILED.value
                 transaction.failed_at = datetime.utcnow()
                 await db_session.commit()
                 
@@ -519,8 +522,8 @@ class PaymentProcessorService:
     async def get_user_transactions(
         self,
         user_id: UUID,
-        transaction_type: Optional[TransactionTypeEnum] = None,
-        status: Optional[TransactionStatusEnum] = None,
+        transaction_type: Optional[TransactionType] = None,
+        status: Optional[TransactionStatus] = None,
         limit: int = 50,
         offset: int = 0,
         session: Optional[AsyncSession] = None
@@ -624,7 +627,7 @@ class PaymentProcessorService:
         if not user:
             raise PaymentProcessorError("User not found")
         
-        if user.status != UserStatusEnum.ACTIVE:
+        if user.status != UserStatus.ACTIVE:
             raise PaymentProcessorError("User account is not active")
         
         # Get payment method
@@ -641,7 +644,7 @@ class PaymentProcessorService:
         if not payment_method:
             raise PaymentProcessorError("Payment method not found")
         
-        if payment_method.status != PaymentMethodStatusEnum.ACTIVE:
+        if payment_method.status != PaymentMethodStatus.ACTIVE:
             raise PaymentProcessorError("Payment method is not active")
         
         return user, payment_method
@@ -707,23 +710,23 @@ class PaymentProcessorService:
         """Execute fiat to crypto conversion steps."""
         # Step 1: Charge fiat payment method
         await self._create_transaction_step(
-            str(transaction.id), 1, "fiat_charge", "Charging fiat payment method", session
+            UUID(transaction.id), 1, "fiat_charge", "Charging fiat payment method", session
         )
         
         # Step 2: Convert fiat to USDC
         await self._create_transaction_step(
-            str(transaction.id), 2, "fiat_to_usdc", "Converting fiat to USDC", session
+            UUID(transaction.id), 2, "fiat_to_usdc", "Converting fiat to USDC", session
         )
         
         # Step 3: Convert USDC to target crypto (if needed)
         if request.crypto_currency != 'USDC':
             await self._create_transaction_step(
-                str(transaction.id), 3, "usdc_to_crypto", f"Converting USDC to {request.crypto_currency}", session
+                UUID(transaction.id), 3, "usdc_to_crypto", f"Converting USDC to {request.crypto_currency}", session
             )
         
         # Step 4: Transfer to destination wallet
         await self._create_transaction_step(
-            str(transaction.id), 4, "crypto_transfer", "Transferring crypto to destination wallet", session
+            UUID(transaction.id), 4, "crypto_transfer", "Transferring crypto to destination wallet", session
         )
     
     async def _execute_crypto_to_fiat_steps(
@@ -736,23 +739,23 @@ class PaymentProcessorService:
         """Execute crypto to fiat conversion steps."""
         # Step 1: Transfer crypto from source wallet
         await self._create_transaction_step(
-            str(transaction.id), 1, "crypto_transfer", "Transferring crypto from source wallet", session
+            UUID(transaction.id), 1, "crypto_transfer", "Transferring crypto from source wallet", session
         )
         
         # Step 2: Convert crypto to USDC (if needed)
         if request.crypto_currency != 'USDC':
             await self._create_transaction_step(
-                str(transaction.id), 2, "crypto_to_usdc", f"Converting {request.crypto_currency} to USDC", session
+                UUID(transaction.id), 2, "crypto_to_usdc", f"Converting {request.crypto_currency} to USDC", session
             )
         
         # Step 3: Convert USDC to fiat
         await self._create_transaction_step(
-            str(transaction.id), 3, "usdc_to_fiat", "Converting USDC to fiat", session
+            UUID(transaction.id), 3, "usdc_to_fiat", "Converting USDC to fiat", session
         )
         
         # Step 4: Transfer fiat to payment method
         await self._create_transaction_step(
-            str(transaction.id), 4, "fiat_transfer", "Transferring fiat to payment method", session
+            UUID(transaction.id), 4, "fiat_transfer", "Transferring fiat to payment method", session
         )
     
     async def _execute_cross_border_payment_steps(
@@ -765,27 +768,27 @@ class PaymentProcessorService:
         """Execute cross-border payment steps."""
         # Step 1: Charge source payment method
         await self._create_transaction_step(
-            str(transaction.id), 1, "source_charge", "Charging source payment method", session
+            UUID(transaction.id), 1, "source_charge", "Charging source payment method", session
         )
         
         # Step 2: Convert to bridge currency (USDC)
         await self._create_transaction_step(
-            str(transaction.id), 2, "to_bridge", "Converting to bridge currency", session
+            UUID(transaction.id), 2, "to_bridge", "Converting to bridge currency", session
         )
         
         # Step 3: Cross-border transfer via Algorand
         await self._create_transaction_step(
-            str(transaction.id), 3, "cross_border", "Cross-border transfer via blockchain", session
+            UUID(transaction.id), 3, "cross_border", "Cross-border transfer via blockchain", session
         )
         
         # Step 4: Convert to destination currency
         await self._create_transaction_step(
-            str(transaction.id), 4, "to_destination", "Converting to destination currency", session
+            UUID(transaction.id), 4, "to_destination", "Converting to destination currency", session
         )
         
         # Step 5: Deliver to recipient
         await self._create_transaction_step(
-            str(transaction.id), 5, "delivery", f"Delivering via {request.delivery_method}", session
+            UUID(transaction.id), 5, "delivery", f"Delivering via {request.delivery_method}", session
         )
     
     async def _create_transaction_step(

@@ -5,6 +5,8 @@ This module provides comprehensive Algorand blockchain integration including
 transaction creation, asset management, and account operations.
 """
 
+import asyncio
+import base64
 import logging
 from typing import Optional, Dict, Any, List
 from decimal import Decimal
@@ -13,8 +15,28 @@ from algosdk import account, mnemonic, transaction, encoding
 from algosdk.v2client import algod, indexer
 from algosdk.transaction import PaymentTxn, AssetTransferTxn, AssetOptInTxn
 from algosdk.error import AlgodHTTPError, IndexerHTTPError
+from algosdk.transaction import (
+    SignedTransaction
+) 
 
 from app.core.config import get_settings
+class ContractManagerError(Exception):
+    """Base exception for contract manager errors."""
+    pass
+
+class ContractDeploymentError(ContractManagerError):
+    """Exception raised for contract deployment errors."""
+    pass
+
+
+class ContractInteractionError(ContractManagerError):
+    """Exception raised for contract interaction errors."""
+    pass
+
+
+class ContractCompilationError(ContractManagerError):
+    """Exception raised for contract compilation errors."""
+    pass
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -70,7 +92,7 @@ class AlgorandClient:
         """
         try:
             account_info = self.algod_client.account_info(address)
-            return account_info
+            return account_info.__dict__
             
         except AlgodHTTPError as e:
             if e.code == 404:
@@ -590,4 +612,40 @@ class AlgorandClient:
     def _parse_amount(self, amount: Decimal, decimals: int = 6) -> int:
         """Parse amount from decimal to smallest unit."""
         return int(amount * (10 ** decimals))
+    
+    def compile_teal_to_bytecode(self, teal_code: str) -> bytes:
+        """
+        Compile TEAL source code to bytecode.
+        """
+        try:
+            compile_response = self.algod_client.compile(teal_code)
+            return base64.b64decode(compile_response["result"])
+        except Exception as e:
+            raise ContractCompilationError(f"TEAL compilation failed: {str(e)}")
+        
+    async def submit_transaction(self, signed_txn: SignedTransaction) -> str:
+        """
+        Submit a signed transaction to the network and return the transaction ID.
+        """
+        try:
+            txid = await asyncio.to_thread(self.algod_client.send_transaction, signed_txn)
+            return txid
+        except AlgodHTTPError as e:
+            raise TransactionError(f"Failed to submit transaction: {str(e)}")
+
+    async def wait_for_confirmation(self, txid: str, timeout: int = 10) -> dict:
+        """
+        Wait until the transaction is confirmed or rejected, or until `timeout` rounds have passed.
+        Returns the confirmed transaction information.
+        """
+        try:
+            confirmed_txn = await asyncio.to_thread(
+                transaction.wait_for_confirmation,
+                self.algod_client,
+                txid,
+                timeout
+            )
+            return confirmed_txn
+        except Exception as e:
+            raise TransactionError(f"Error while waiting for confirmation: {str(e)}")
 

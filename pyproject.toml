@@ -39,7 +39,7 @@ dependencies = [
     "py-algorand-sdk>=2.6.0",
     "pyteal>=0.25.0",
     # Database and ORM (Simplified)
-    "sqlalchemy>=2.0.23",
+    "sqlalchemy[asyncio]>=2.0.23",
     "alembic>=1.12.1",
     "asyncpg>=0.29.0",
     # Data Validation (Pydantic v2)
@@ -66,6 +66,7 @@ dependencies = [
     "python-multipart>=0.0.6",
     "setuptools>=80.9.0",
     "wheel>=0.45.1",
+    "sqlalchemy-stubs>=0.4",
 ]
 
 [project.optional-dependencies]

@@ -441,7 +441,7 @@ class ContractManager:
             Dict[str, Any]: Contract global state
         """
         try:
-            app_info = await self.algorand_client.get_application_info(app_id)
+            app_info = self.algorand_client.algod_client.application_info(app_id)
             
             if not app_info:
                 raise ContractInteractionError(f"Contract {app_id} not found")

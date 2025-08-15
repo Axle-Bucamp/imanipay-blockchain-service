@@ -11,17 +11,20 @@ from typing import Optional, List
 from uuid import uuid4
 
 from sqlalchemy import (
-    ARRAY, UUID, Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, 
+    ARRAY, Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, 
     Numeric, String, Text, JSON, Index, CheckConstraint,
     UniqueConstraint, BigInteger, TypeDecorator
 )
-# Use String for UUID in SQLite compatibility mode
+from sqlalchemy.dialects.postgresql import UUID
+
+# Use String for String(36) in SQLite compatibility mode
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 
 # Import from correct schema module
-from .schemas.enumerate import TransactionStatus as PydanticTransactionStatus
+from .schemas.enumerate import KYCStatus, TransactionStatus as PydanticTransactionStatus, UserStatus
+from .schemas.enumerate import *
 from sqlalchemy.dialects import postgresql
 
 # ============================================================================
@@ -37,70 +40,6 @@ class TimestampMixin:
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
-# ============================================================================
-# Enumerations
-# ============================================================================
-
-class TransactionTypeEnum(enum.Enum):
-    """Transaction type enumeration."""
-    ALGORAND_TRANSFER = "algorand_transfer"
-    ASSET_TRANSFER = "asset_transfer"
-    SMART_CONTRACT_CALL = "smart_contract_call"
-    ESCROW_PAYMENT = "escrow_payment"
-    MULTISIG_TRANSACTION = "multisig_transaction"
-    BATCH_TRANSACTION = "batch_transaction"
-    FIAT_TO_CRYPTO="escrow_payment" # TODO
-    CRYPTO_TO_FIAT="escrow_payment" # TODO
-    CROSS_BORDER_PAYMENT="escrow_payment" # TODO 
- 
-class TransactionStatusEnum(enum.Enum):
-    """Transaction status enumeration."""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    CONFIRMED = "confirmed"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-
-class WalletTypeEnum(enum.Enum):
-    """Wallet type enumeration."""
-    STANDARD = "standard"
-    MULTISIG = "multisig"
-    SMART_CONTRACT = "smart_contract"
-    ESCROW = "escrow"
-
-
-class WalletStatusEnum(enum.Enum):
-    """Wallet status enumeration."""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    FROZEN = "frozen"
-
-
-class ContractTypeEnum(enum.Enum):
-    """Smart contract type enumeration."""
-    ESCROW = "escrow"
-    MULTISIG = "multisig"
-    BATCH_PROCESSOR = "batch_processor"
-    PAYMENT_SPLITTER = "payment_splitter"
-
-
-class ContractStatusEnum(enum.Enum):
-    """Smart contract status enumeration."""
-    DEPLOYED = "deployed"
-    ACTIVE = "active"
-    PAUSED = "paused"
-    TERMINATED = "terminated"
-
-
-class NetworkEnum(enum.Enum):
-    """Blockchain network enumeration."""
-    MAINNET = "mainnet"
-    TESTNET = "testnet"
-    BETANET = "betanet"
-    LOCALNET = "localnet"
-
 class IPNetwork(TypeDecorator):
     impl = postgresql.INET
 
@@ -112,77 +51,6 @@ class IPNetwork(TypeDecorator):
         return str(value)
 
 # ============================================================================
-# Enumerations
-# ============================================================================
-
-class UserStatusEnum(enum.Enum):
-    """User account status enumeration."""
-    PENDING = "pending"
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-    CLOSED = "closed"
-    BANNED = "banned"
-
-
-class PaymentMethodStatusEnum(enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    EXPIRED = "expired"
-
-class KYCStatusEnum(enum.Enum):
-    """KYC verification status enumeration."""
-    NOT_STARTED = "not_started"
-    IN_PROGRESS = "in_progress"
-    PENDING_REVIEW = "pending_review"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    EXPIRED = "expired"
-
-
-class GenderEnum(enum.Enum):
-    """Gender enumeration."""
-    MALE = "male"
-    FEMALE = "female"
-    OTHER = "other"
-    PREFER_NOT_TO_SAY = "prefer_not_to_say"
-
-
-class DeviceTypeEnum(enum.Enum):
-    """Device type enumeration."""
-    WEB = "web"
-    MOBILE_IOS = "mobile_ios"
-    MOBILE_ANDROID = "mobile_android"
-    API = "api"
-    OTHER = "other"
-
-
-class LoginMethodEnum(enum.Enum):
-    """Login method enumeration."""
-    PASSWORD = "password"
-    SSO = "sso"
-    BIOMETRIC = "biometric"
-    HARDWARE_KEY = "hardware_key"
-    MAGIC_LINK = "magic_link"
-
-
-class PaymentMethodTypeEnum(enum.Enum):
-    """Payment method type enumeration."""
-    BANK_ACCOUNT = "bank_account"
-    CARD = "card"
-    MOBILE_MONEY = "mobile_money"
-    CASH_PICKUP = "cash_pickup"
-    CRYPTO_WALLET = "crypto_wallet"
-
-
-class RiskLevelEnum(enum.Enum):
-    """Risk level enumeration."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-
-
-# ============================================================================
 # User Management Models
 # ============================================================================
 
@@ -191,15 +59,15 @@ class User(Base, TimestampMixin):
     
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(String(36), primary_key=True, default=uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     phone = Column(String(50), nullable=True, index=True)
     password_hash = Column(String(255), nullable=False)
     salt = Column(String(255), nullable=False)
     
     # Status and verification
-    status = Column(Enum(UserStatusEnum), default=UserStatusEnum.PENDING, nullable=False, index=True)
-    kyc_status = Column(Enum(KYCStatusEnum), default=KYCStatusEnum.NOT_STARTED, nullable=False, index=True)
+    status = Column(String, default=UserStatus.PENDING, nullable=False, index=True)
+    kyc_status = Column(String, default=KYCStatus.NOT_STARTED, nullable=False, index=True)
     risk_score = Column(Integer, default=0, nullable=False)
     
     # Authentication
@@ -231,7 +99,7 @@ class User(Base, TimestampMixin):
     __table_args__ = (
         CheckConstraint("email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'", name="users_email_check"),
         CheckConstraint("phone IS NULL OR phone ~* '^\\+[1-9]\\d{1,14}$'", name="users_phone_check"),
-        Index('idx_users_active', 'id', postgresql_where=status == UserStatusEnum.ACTIVE),
+        Index('idx_users_active', 'id', postgresql_where=status == UserStatus.ACTIVE),
     )
     
     @validates('email')
@@ -247,15 +115,15 @@ class UserProfile(Base, TimestampMixin):
     
     __tablename__ = "user_profiles"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), unique=True, nullable=False)
+    id = Column(String(36), primary_key=True, default=uuid4)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'), unique=True, nullable=False)
     
     # Personal information
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     middle_name = Column(String(100), nullable=True)
     date_of_birth = Column(Date, nullable=True)
-    gender = Column(Enum(GenderEnum), nullable=True)
+    gender = Column(String, nullable=True)
     
     # Location information
     nationality = Column(String(3), nullable=True)  # ISO 3166-1 alpha-3
@@ -290,16 +158,16 @@ class UserSession(Base, TimestampMixin):
     
     __tablename__ = "user_sessions"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=uuid4)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     
     # Session tokens
     session_token = Column(String(255), unique=True, nullable=False, index=True)
     refresh_token = Column(String(255), unique=True, nullable=True)
     
     # Device information
-    device_id = Column(String(255), nullable=True)
-    device_type = Column(Enum(DeviceTypeEnum), nullable=True)
+    device_id = Column(String(36), nullable=True)
+    device_type = Column(String, nullable=True)
     device_name = Column(String(255), nullable=True)
     ip_address = Column(IPNetwork, nullable=True)
     user_agent = Column(Text, nullable=True)
@@ -314,7 +182,7 @@ class UserSession(Base, TimestampMixin):
     last_activity_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     
     # Security information
-    login_method = Column(Enum(LoginMethodEnum), nullable=True)
+    login_method = Column(String, nullable=True)
     mfa_verified = Column(Boolean, default=False, nullable=False)
     risk_score = Column(Integer, default=0, nullable=False)
     
@@ -339,11 +207,11 @@ class PaymentMethod(Base, TimestampMixin):
     
     __tablename__ = "payment_methods"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=uuid4)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     
     # Method classification
-    method_type = Column(Enum(PaymentMethodTypeEnum), nullable=False, index=True)
+    method_type = Column(String, nullable=False, index=True)
     status = Column(String(50), default='active', nullable=False, index=True)
     
     # Method details
@@ -385,6 +253,8 @@ class PaymentMethod(Base, TimestampMixin):
     
     # Relationships
     user = relationship("User", back_populates="payment_methods")
+
+    status = Column(String(10), default='active', nullable=True, index=True)
     
     # Constraints and indexes
     __table_args__ = (
@@ -403,7 +273,7 @@ class ExchangeRate(Base):
     
     __tablename__ = "exchange_rates"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(String(36), primary_key=True, default=uuid4)
     
     # Currency pair
     base_currency = Column(String(10), nullable=False)
@@ -441,8 +311,8 @@ class TransactionStep(Base, TimestampMixin):
     
     __tablename__ = "transaction_steps"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    transaction_id = Column(UUID(as_uuid=True), ForeignKey('transactions.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=uuid4)
+    transaction_id = Column(String(36), ForeignKey('transactions.id', ondelete='CASCADE'), nullable=False)
     
     # Step identification
     step_number = Column(Integer, nullable=False)
@@ -495,13 +365,13 @@ class Wallet(Base, TimestampMixin):
     
     __tablename__ = "wallets"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     
     # Wallet identification
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    wallet_type = Column(Enum(WalletTypeEnum), default=WalletTypeEnum.STANDARD, nullable=False)
-    status = Column(Enum(WalletStatusEnum), default=WalletStatusEnum.ACTIVE, nullable=False)
+    wallet_type = Column(String, default=WalletType.STANDARD, nullable=False)
+    status = Column(String, default=WalletStatus.ACTIVE, nullable=False)
     
     # Algorand-specific fields
     algorand_address = Column(String(58), unique=True, nullable=False, index=True)
@@ -513,7 +383,7 @@ class Wallet(Base, TimestampMixin):
     multisig_addresses = Column(JSON, nullable=True)  # Use JSON instead of ARRAY for SQLite compatibility
     
     # Network and configuration
-    network = Column(Enum(NetworkEnum), default=NetworkEnum.TESTNET, nullable=False)
+    network = Column(String, default=Network.TESTNET, nullable=False)
     wallet_metadata = Column(JSON, default={}, nullable=False)
     
     # Relationships
@@ -538,15 +408,15 @@ class Transaction(Base, TimestampMixin):
     
     __tablename__ = "transactions"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     wallet_id = Column(String(36), ForeignKey('wallets.id', ondelete='CASCADE'), nullable=False)
 
     # Transaction identification
-    transaction_type = Column(Enum(TransactionTypeEnum), nullable=False)
-    status = Column(Enum(TransactionStatusEnum), default=TransactionStatusEnum.PENDING, nullable=False, index=True)
+    transaction_type = Column(String, nullable=False)
+    status = Column(String, default=TransactionStatus.PENDING, nullable=False, index=True)
     
     # Algorand transaction details
-    algorand_tx_id = Column(String(52), unique=True, nullable=True, index=True)
+    algorand_tx_id = Column(String(36), unique=True, nullable=True, index=True)
     algorand_tx_hash = Column(String(64), nullable=True)
     block_number = Column(BigInteger, nullable=True)
     round_number = Column(BigInteger, nullable=True)
@@ -565,9 +435,10 @@ class Transaction(Base, TimestampMixin):
     application_args = Column(JSON, nullable=True)  # For smart contract calls
     
     # Network and confirmation
-    network = Column(Enum(NetworkEnum), default=NetworkEnum.TESTNET, nullable=False)
+    network = Column(String, default=Network.TESTNET, nullable=False)
     confirmed_at = Column(DateTime(timezone=True), nullable=True)
     confirmation_count = Column(Integer, default=0, nullable=False)
+    status = Column(String, default=TransactionStatus.PENDING, nullable=False)
     
     # Metadata
     transaction_metadata = Column(JSON, default={}, nullable=False)
@@ -598,14 +469,14 @@ class SmartContract(Base, TimestampMixin):
     
     __tablename__ = "smart_contracts"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     wallet_id = Column(String(36), ForeignKey('wallets.id', ondelete='CASCADE'), nullable=False)
     
     # Contract identification
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    contract_type = Column(Enum(ContractTypeEnum), nullable=False)
-    status = Column(Enum(ContractStatusEnum), default=ContractStatusEnum.DEPLOYED, nullable=False)
+    contract_type = Column(String, nullable=False)
+    status = Column(String, default=ContractStatus.DEPLOYED, nullable=False)
     
     # Algorand application details
     app_id = Column(BigInteger, unique=True, nullable=True, index=True)
@@ -623,7 +494,7 @@ class SmartContract(Base, TimestampMixin):
     local_state = Column(JSON, default={}, nullable=False)
     
     # Network and deployment
-    network = Column(Enum(NetworkEnum), default=NetworkEnum.TESTNET, nullable=False)
+    network = Column(String, default=Network.TESTNET, nullable=False)
     deployed_at = Column(DateTime(timezone=True), nullable=True)
     deployment_tx_id = Column(String(52), nullable=True)
     
@@ -649,7 +520,7 @@ class ContractExecution(Base, TimestampMixin):
     
     __tablename__ = "contract_executions"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     contract_id = Column(String(36), ForeignKey('smart_contracts.id', ondelete='CASCADE'), nullable=False)
     
     # Execution details
@@ -667,7 +538,7 @@ class ContractExecution(Base, TimestampMixin):
     execution_fee = Column(Numeric(20, 6), nullable=True)
     
     # Network and confirmation
-    network = Column(Enum(NetworkEnum), default=NetworkEnum.TESTNET, nullable=False)
+    network = Column(String, default=Network.TESTNET, nullable=False)
     block_number = Column(BigInteger, nullable=True)
     confirmed_at = Column(DateTime(timezone=True), nullable=True)
     
@@ -695,7 +566,7 @@ class AlgorandAsset(Base, TimestampMixin):
     
     __tablename__ = "algorand_assets"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     
     # Asset identification
     asset_id = Column(BigInteger, unique=True, nullable=False, index=True)
@@ -719,7 +590,7 @@ class AlgorandAsset(Base, TimestampMixin):
     creator_address = Column(String(58), nullable=False)
     
     # Network and status
-    network = Column(Enum(NetworkEnum), default=NetworkEnum.TESTNET, nullable=False)
+    network = Column(String, default=Network.TESTNET, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Metadata
@@ -741,7 +612,7 @@ class WalletAsset(Base, TimestampMixin):
     
     __tablename__ = "wallet_assets"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     wallet_id = Column(String(36), ForeignKey('wallets.id', ondelete='CASCADE'), nullable=False)
     asset_id = Column(BigInteger, nullable=False)  # 0 for ALGO
     
@@ -755,7 +626,7 @@ class WalletAsset(Base, TimestampMixin):
     opt_in_tx_id = Column(String(52), nullable=True)
     
     # Network
-    network = Column(Enum(NetworkEnum), default=NetworkEnum.TESTNET, nullable=False)
+    network = Column(String, default=Network.TESTNET, nullable=False)
     
     # Metadata
     transaction_metadata = Column(JSON, default={}, nullable=False)
@@ -783,10 +654,10 @@ class NetworkConfiguration(Base, TimestampMixin):
     
     __tablename__ = "network_configurations"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(String(36), primary_key=True, default=lambda: uuid4())
     
     # Network identification
-    network = Column(Enum(NetworkEnum), unique=True, nullable=False)
+    network = Column(String, unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     
@@ -820,12 +691,12 @@ class KYCVerification(Base, TimestampMixin):
     
     __tablename__ = "kyc_verifications"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=uuid4)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     
     # Verification details
     verification_level = Column(String(50), nullable=False)
-    status = Column(Enum(KYCStatusEnum), default=KYCStatusEnum.PENDING_REVIEW, nullable=False, index=True)
+    status = Column(String, default=KYCStatus.PENDING_REVIEW, nullable=False, index=True)
     provider = Column(String(100), nullable=False)
     provider_reference = Column(String(255), nullable=True)
     
@@ -862,9 +733,9 @@ class AMLScreening(Base, TimestampMixin):
     
     __tablename__ = "aml_screenings"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
-    transaction_id = Column(UUID(as_uuid=True), ForeignKey('transactions.id', ondelete='CASCADE'), nullable=True)
+    id = Column(String(36), primary_key=True, default=uuid4)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
+    transaction_id = Column(String, ForeignKey('transactions.id', ondelete='CASCADE'), nullable=True)
     
     # Screening details
     screening_type = Column(String(50), nullable=False)
@@ -876,12 +747,12 @@ class AMLScreening(Base, TimestampMixin):
     screening_data = Column(JSON, default={}, nullable=False)
     matches = Column(JSON, default=[], nullable=False)
     risk_score = Column(Integer, nullable=True)
-    risk_level = Column(Enum(RiskLevelEnum), nullable=True, index=True)
+    risk_level = Column(String, nullable=True, index=True)
     
     # Resolution
     resolution = Column(String(50), nullable=True)
     resolution_notes = Column(Text, nullable=True)
-    resolved_by = Column(UUID(as_uuid=True), nullable=True)
+    resolved_by = Column(String(36), nullable=True)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships

@@ -7,9 +7,9 @@ conversion functionality for the payment platform.
 
 import logging
 import asyncio
-from datetime import datetime, timedelta
+from datetime import _TzInfo, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Literal, Optional, Dict, Any, List, Tuple
 from uuid import UUID
 
 import httpx
@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.database import get_async_session_context
 # from app.models import ExchangeRate  # Temporarily disabled
+from app.models import ExchangeRate
 from app.schemas.payment import ExchangeRate as ExchangeRateSchema
 
 logger = logging.getLogger(__name__)
@@ -382,9 +383,9 @@ class ExchangeRateService:
         
         return result.scalar_one_or_none()
     
-    def _is_rate_stale(self, rate: ExchangeRateSchema) -> bool:
+    def _is_rate_stale(self, rate: ExchangeRate) -> bool:
         """Check if exchange rate is stale."""
-        age = datetime.utcnow() - rate.created_at
+        age = datetime.now(tz=timezone.utc) - rate.created_at
         return age > self.cache_duration
     
     async def _fetch_and_store_rate(
