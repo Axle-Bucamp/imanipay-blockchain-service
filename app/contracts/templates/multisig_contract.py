@@ -10,8 +10,8 @@ from pyteal import (
     InnerTxnBuilder, Global, Addr, TxnField, Btoi, Bytes, App,
     If, And, Or, Not, Cond, Subroutine, TealType, Expr,
     ScratchVar, For, While, Break, Continue, Approve, Reject,
-    OnCall, OnCallBegin, OnCallEnd, Substring, Len, Concat,
-    Pop, Dup, Swap, Select, SetBit, GetBit, BytesAdd, BytesSub,
+    Substring, Len, Concat, Itob,
+    Pop, SetBit, GetBit, BytesAdd,
     Extract, Replace, Keccak256, Sha256, Ed25519Verify
 )
 

@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from algosdk import account, mnemonic, transaction, encoding
 from algosdk.v2client import algod, indexer
-from algosdk.future.transaction import PaymentTxn, AssetTransferTxn, AssetOptInTxn
+from algosdk.transaction import PaymentTxn, AssetTransferTxn, AssetOptInTxn
 from algosdk.error import AlgodHTTPError, IndexerHTTPError
 
 from app.core.config import get_settings

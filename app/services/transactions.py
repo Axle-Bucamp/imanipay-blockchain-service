@@ -4,10 +4,12 @@ from algosdk.v2client import algod
 from algosdk import transaction, account, mnemonic
 from algosdk.transaction import ApplicationCallTxn, SuggestedParams, PaymentTxn, AssetTransferTxn, assign_group_id
 from algosdk.encoding import encode_address, decode_address
-from app.core.config import settings
+from app.core.config import get_settings
 from app.schemas import SendPaymentRequest, SendPaymentResponse
 import json
 import struct
+
+settings = get_settings()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

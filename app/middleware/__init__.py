@@ -6,14 +6,10 @@ and other request/response processing components.
 """
 
 from .security import (
-    SecurityMiddleware,
-    CORSSecurityMiddleware,
-    RequestValidationMiddleware
+    SimplifiedSecurityMiddleware,
 )
 
 __all__ = [
-    "SecurityMiddleware",
-    "CORSSecurityMiddleware", 
-    "RequestValidationMiddleware"
+    "SimplifiedSecurityMiddleware",
 ]
 

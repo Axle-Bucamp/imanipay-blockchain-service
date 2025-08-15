@@ -1,11 +1,13 @@
 # /imanipay-blockchain-service/app/services/wallets.py
 from algosdk import account, mnemonic
 from algosdk.v2client import algod
-from app.core.config import settings
+from app.core.config import get_settings
 from app.schemas import WalletResponse, BalanceResponse, BalanceRequest, ValidateWalletRequest, ValidateWalletResponse # Import the new schema
 from typing import Dict
 from uuid import UUID
 import time
+
+settings = get_settings()
 
 headers = {
     "X-API-Key": settings.algorand.algod_token # TODO find api key endpoint for algorand

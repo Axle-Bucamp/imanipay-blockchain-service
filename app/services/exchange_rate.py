@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.database import get_async_session_context
-from app.models import ExchangeRate
+# from app.models import ExchangeRate  # Temporarily disabled
 from app.schemas import ExchangeRate as ExchangeRateSchema
 
 logger = logging.getLogger(__name__)

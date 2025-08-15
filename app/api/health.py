@@ -18,7 +18,7 @@ from app.core.config import get_settings
 from app.database import get_async_session
 from app.services.algorand_client import AlgorandClient
 from app.services.external_processors import processor_manager
-from app.services.exchange_rate import ExchangeRateService
+# from app.services.exchange_rate import ExchangeRateService  # Temporarily disabled
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

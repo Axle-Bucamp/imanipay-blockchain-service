@@ -1,8 +1,8 @@
 """
-ImaniPay Blockchain Service - Enhanced FastAPI Application
+ImaniPay Blockchain Service - Simplified FastAPI Application
 
-A comprehensive blockchain payment service for cross-border African payments
-with fiat-to-crypto conversions, USDC bridge, and Algorand integration.
+A blockchain-focused service for Algorand smart contracts and wallet operations.
+Simplified version without authentication, managed by external backend.
 """
 
 import logging
@@ -10,27 +10,20 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Dict, Any
 
-from fastapi import FastAPI, Request, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.config import get_settings
-from app.core.startup import startup_event, shutdown_event
-from app.database import init_db, close_db
-from app.services.external_processors import processor_manager
-from app.services.exchange_rate import ExchangeRateService
+from app.database import init_database, close_database
+from app.middleware.security import SimplifiedSecurityMiddleware
 
-# Import API routers
-from app.api import (
-    wallets, transactions, payments, compliance, 
-    exchange_rates, webhooks, health
-)
+# Import simplified API routers
+from app.api import wallets, transactions, health, algokit
 
 # Configure logging
 logging.basicConfig(
@@ -45,31 +38,17 @@ settings = get_settings()
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
-# Security
-security = HTTPBearer()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
-    logger.info("Starting ImaniPay Blockchain Service...")
+    logger.info("Starting ImaniPay Blockchain Service (Simplified)...")
     
     try:
         # Initialize database
-        await init_db()
+        await init_database()
         logger.info("Database initialized successfully")
-        
-        # Run startup tasks
-        await startup_event()
-        logger.info("Startup tasks completed")
-        
-        # Start background tasks
-        if settings.app.environment == "production":
-            # Start exchange rate refresh task
-            exchange_rate_service = ExchangeRateService()
-            asyncio.create_task(periodic_rate_refresh(exchange_rate_service))
-            logger.info("Background tasks started")
         
         logger.info("ImaniPay Blockchain Service started successfully")
         
@@ -84,14 +63,8 @@ async def lifespan(app: FastAPI):
         logger.info("Shutting down ImaniPay Blockchain Service...")
         
         try:
-            # Run shutdown tasks
-            await shutdown_event()
-            
-            # Close external processors
-            await processor_manager.close_all()
-            
             # Close database
-            await close_db()
+            await close_database()
             
             logger.info("ImaniPay Blockchain Service shut down successfully")
             
@@ -103,60 +76,46 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ImaniPay Blockchain Service",
     description="""
-    A comprehensive blockchain payment service for cross-border African payments.
+    A simplified blockchain service focused on Algorand smart contracts and wallet operations.
     
     ## Features
     
-    * **Cross-border payments** - Bypass local taxes for African co-workers
-    * **Multi-currency support** - Fiat to USDC to Algorand conversions
-    * **Regulatory compliance** - KYC/AML verification and monitoring
-    * **Secure wallet management** - Multi-signature and encrypted storage
-    * **Real-time exchange rates** - Multiple provider aggregation
-    * **Comprehensive APIs** - RESTful endpoints for all operations
+    * **Algorand Integration** - Full Algorand blockchain connectivity
+    * **Smart Contracts** - Escrow, multi-signature, and batch processing contracts
+    * **Wallet Management** - Secure wallet creation and management
+    * **Transaction Processing** - Algorand transaction handling
+    * **Asset Management** - Algorand Standard Assets (ASA) support
     
-    ## Payment Flows
+    ## Architecture
     
-    1. **Fiat to USDC** - Convert local currency to USDC via payment processors
-    2. **USDC to Algorand** - Bridge USDC to Algorand blockchain
-    3. **Algorand/USDC to Fiat** - Convert crypto back to local currency
-    4. **Cross-border transfers** - Direct peer-to-peer payments
+    This service focuses exclusively on blockchain operations:
+    - Authentication is handled by external backend
+    - No user management or sessions
+    - Direct blockchain interactions
+    - Smart contract deployment and execution
     
-    ## Security
+    ## Networks Supported
     
-    * OAuth2 authentication with JWT tokens
-    * End-to-end encryption for sensitive data
-    * Rate limiting and DDoS protection
-    * Comprehensive audit logging
-    * Multi-factor authentication support
+    * **MainNet** - Production Algorand network
+    * **TestNet** - Testing Algorand network  
+    * **LocalNet** - Local development network (AlgoKit)
     """,
-    version="2.0.0",
-    docs_url="/docs" if not settings.app.is_production else None,
-    redoc_url="/redoc" if not settings.app.is_production else None,
+    version="2.0.0-simplified",
+    docs_url="/docs",
+    redoc_url="/redoc",
     lifespan=lifespan,
     openapi_tags=[
         {
             "name": "wallets",
-            "description": "Wallet management and operations"
+            "description": "Algorand wallet management and operations"
         },
         {
             "name": "transactions", 
-            "description": "Transaction processing and tracking"
+            "description": "Algorand transaction processing and tracking"
         },
         {
-            "name": "payments",
-            "description": "Payment processing and conversions"
-        },
-        {
-            "name": "compliance",
-            "description": "KYC/AML verification and risk assessment"
-        },
-        {
-            "name": "exchange-rates",
-            "description": "Currency exchange rates and conversions"
-        },
-        {
-            "name": "webhooks",
-            "description": "Webhook endpoints for external integrations"
+            "name": "contracts",
+            "description": "Smart contract deployment and execution"
         },
         {
             "name": "health",
@@ -165,26 +124,22 @@ app = FastAPI(
     ]
 )
 
+# Add simplified security middleware
+app.add_middleware(SimplifiedSecurityMiddleware)
+
 # Add rate limiting middleware
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# Add CORS middleware
+# Add CORS middleware (permissive for external backend integration)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.security.allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins since auth is external
+    allow_credentials=False,  # No credentials needed
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
-
-# Add trusted host middleware for production
-if settings.app.is_production:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=settings.security.allowed_hosts
-    )
 
 
 # ============================================================================
@@ -202,7 +157,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
                 "message": exc.detail,
                 "type": "http_error"
             },
-            "request_id": getattr(request.state, "request_id", None)
+            "request_id": getattr(request.state, "request_id", None),
+            "timestamp": asyncio.get_event_loop().time()
         }
     )
 
@@ -220,7 +176,8 @@ async def general_exception_handler(request: Request, exc: Exception):
                 "message": "Internal server error",
                 "type": "internal_error"
             },
-            "request_id": getattr(request.state, "request_id", None)
+            "request_id": getattr(request.state, "request_id", None),
+            "timestamp": asyncio.get_event_loop().time()
         }
     )
 
@@ -271,7 +228,7 @@ async def logging_middleware(request: Request, call_next):
 # API Routes
 # ============================================================================
 
-# Include API routers
+# Include API routers (no authentication dependencies)
 app.include_router(
     health.router,
     prefix="/health",
@@ -281,42 +238,27 @@ app.include_router(
 app.include_router(
     wallets.router,
     prefix="/api/v1/wallets",
-    tags=["wallets"],
-    dependencies=[Depends(security)] if settings.security.require_auth else []
+    tags=["wallets"]
 )
 
 app.include_router(
     transactions.router,
     prefix="/api/v1/transactions",
-    tags=["transactions"],
-    dependencies=[Depends(security)] if settings.security.require_auth else []
+    tags=["transactions"]
 )
 
 app.include_router(
-    payments.router,
-    prefix="/api/v1/payments",
-    tags=["payments"],
-    dependencies=[Depends(security)] if settings.security.require_auth else []
+    algokit.router,
+    prefix="/api/v1/algokit",
+    tags=["algokit"]
 )
 
-app.include_router(
-    compliance.router,
-    prefix="/api/v1/compliance",
-    tags=["compliance"],
-    dependencies=[Depends(security)] if settings.security.require_auth else []
-)
-
-app.include_router(
-    exchange_rates.router,
-    prefix="/api/v1/exchange-rates",
-    tags=["exchange-rates"]
-)
-
-app.include_router(
-    webhooks.router,
-    prefix="/webhooks",
-    tags=["webhooks"]
-)
+# Smart contracts router (to be created)
+# app.include_router(
+#     contracts.router,
+#     prefix="/api/v1/contracts",
+#     tags=["contracts"]
+# )
 
 
 # ============================================================================
@@ -328,103 +270,78 @@ async def root():
     """Root endpoint with service information."""
     return {
         "service": "ImaniPay Blockchain Service",
-        "version": "2.0.0",
-        "description": "Cross-border payment service for African co-workers",
+        "version": "2.0.0-simplified",
+        "description": "Blockchain-focused service for Algorand operations",
         "status": "operational",
         "features": [
-            "Fiat to USDC conversion",
-            "USDC to Algorand bridge", 
-            "Algorand/USDC to fiat conversion",
-            "Cross-border payments",
-            "KYC/AML compliance",
-            "Multi-signature wallets",
-            "Real-time exchange rates"
+            "Algorand wallet management",
+            "Smart contract deployment",
+            "Transaction processing", 
+            "Asset management",
+            "Multi-signature support",
+            "Escrow contracts"
         ],
-        "documentation": "/docs" if not settings.app.is_production else None
+        "networks": [
+            "MainNet",
+            "TestNet", 
+            "LocalNet (AlgoKit)"
+        ],
+        "documentation": "/docs",
+        "authentication": "Managed by external backend"
     }
 
 
 @app.get("/api/v1/info")
-@limiter.limit("10/minute")
+@limiter.limit("100/minute")
 async def api_info(request: Request):
     """API information endpoint."""
     return {
         "api_version": "v1",
-        "service": "ImaniPay Blockchain Service",
-        "environment": settings.app.environment,
-        "supported_currencies": {
-            "fiat": ["USD", "EUR", "NGN", "KES", "GHS", "ZAR"],
-            "crypto": ["ALGO", "USDC", "BTC", "ETH"]
+        "service": "ImaniPay Blockchain Service (Simplified)",
+        "environment": settings.app.environment if hasattr(settings, 'app') else "development",
+        "blockchain": {
+            "network": "Algorand",
+            "supported_networks": ["mainnet", "testnet", "localnet"],
+            "features": [
+                "Native ALGO transfers",
+                "Algorand Standard Assets (ASA)",
+                "Smart contracts (TEAL)",
+                "Multi-signature wallets",
+                "Atomic transactions"
+            ]
         },
-        "supported_networks": ["Algorand"],
-        "payment_processors": ["Circle", "YellowCard", "Transak", "Coinbase"],
-        "features": {
-            "kyc_verification": True,
-            "aml_screening": True,
+        "capabilities": {
+            "wallet_creation": True,
+            "transaction_signing": True,
+            "smart_contract_deployment": True,
+            "asset_management": True,
             "multi_signature": True,
-            "cross_border_payments": True,
-            "real_time_rates": True,
-            "webhook_notifications": True
+            "batch_transactions": True
+        },
+        "authentication": {
+            "managed_externally": True,
+            "requires_api_key": False,
+            "session_management": False
         }
     }
 
 
 # ============================================================================
-# Background Tasks
+# Development Endpoints
 # ============================================================================
 
-async def periodic_rate_refresh(exchange_rate_service: ExchangeRateService):
-    """Periodically refresh exchange rates."""
-    while True:
-        try:
-            logger.info("Starting periodic exchange rate refresh...")
-            results = await exchange_rate_service.refresh_all_rates()
-            logger.info(f"Exchange rate refresh completed: {results}")
-            
-            # Wait 5 minutes before next refresh
-            await asyncio.sleep(300)
-            
-        except Exception as e:
-            logger.error(f"Exchange rate refresh failed: {e}")
-            # Wait 1 minute before retry on error
-            await asyncio.sleep(60)
-
-
-# ============================================================================
-# Development and Testing Endpoints
-# ============================================================================
-
-if not settings.app.is_production:
-    
-    @app.get("/dev/test-processors")
-    async def test_processors():
-        """Test external processor connectivity."""
-        results = {}
-        
-        for name, processor in processor_manager.processors.items():
-            try:
-                # Test with a mock transaction status check
-                response = await processor.get_transaction_status("test-123")
-                results[name] = {
-                    "status": "connected" if response.success else "error",
-                    "message": response.message
-                }
-            except Exception as e:
-                results[name] = {
-                    "status": "error",
-                    "message": str(e)
-                }
-        
-        return {"processor_tests": results}
-    
-    
-    @app.post("/dev/refresh-rates")
-    async def refresh_rates_dev(background_tasks: BackgroundTasks):
-        """Manually trigger exchange rate refresh."""
-        exchange_rate_service = ExchangeRateService()
-        background_tasks.add_task(exchange_rate_service.refresh_all_rates)
-        
-        return {"message": "Exchange rate refresh triggered"}
+@app.get("/dev/network-status")
+async def network_status():
+    """Get Algorand network status."""
+    # This will be implemented with AlgoKit integration
+    return {
+        "message": "Network status endpoint - to be implemented with AlgoKit",
+        "networks": {
+            "mainnet": {"status": "unknown"},
+            "testnet": {"status": "unknown"},
+            "localnet": {"status": "unknown"}
+        }
+    }
 
 
 # ============================================================================
@@ -434,11 +351,12 @@ if not settings.app.is_production:
 if __name__ == "__main__":
     import uvicorn
     
+    # Default configuration for simplified service
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=settings.app.port,
-        reload=not settings.app.is_production,
+        port=8000,
+        reload=True,  # Enable reload for development
         log_level="info",
         access_log=True
     )

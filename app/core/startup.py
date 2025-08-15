@@ -1,7 +1,9 @@
 # /imanipay-blockchain-service/app/core/startup.py
 from fastapi import FastAPI
-from app.core.config import settings
+from app.core.config import get_settings
 from app.api import wallets, transactions # escrow , mobile_money
+
+settings = get_settings()
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.project_name)

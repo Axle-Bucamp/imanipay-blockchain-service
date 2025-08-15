@@ -26,6 +26,16 @@ settings = get_settings()
 # ============================================================================
 
 # Async engine for FastAPI endpoints
+connect_args = {}
+if "sqlite" not in settings.database.postgres_url:
+    connect_args = {
+        "server_settings": {
+            "application_name": "imanipay_blockchain_service",
+            "jit": "off",  # Disable JIT for better performance with short queries
+        },
+        "command_timeout": 60,
+    }
+
 async_engine = create_async_engine(
     settings.database.postgres_url,
     echo=settings.app.debug,
@@ -34,31 +44,20 @@ async_engine = create_async_engine(
     pool_timeout=settings.database.db_pool_timeout,
     pool_pre_ping=True,
     pool_recycle=3600,  # Recycle connections every hour
-    poolclass=QueuePool,
     # Connection arguments
-    connect_args={
-        "server_settings": {
-            "application_name": "imanipay_blockchain_service",
-            "jit": "off",  # Disable JIT for better performance with short queries
-        },
-        "command_timeout": 60,
-    }
+    connect_args=connect_args
 )
 
 # Sync engine for migrations and admin tasks
+sync_url = settings.database.postgres_url
+if "+aiosqlite" in sync_url:
+    sync_url = sync_url.replace("+aiosqlite", "")
+
 sync_engine = create_engine(
-    settings.database.postgres_url.replace("+asyncpg", "+psycopg2"),
+    sync_url,
     echo=settings.app.debug,
-    pool_size=settings.database.db_pool_size,
-    max_overflow=settings.database.db_max_overflow,
-    pool_timeout=settings.database.db_pool_timeout,
     pool_pre_ping=True,
     pool_recycle=3600,
-    poolclass=QueuePool,
-    connect_args={
-        "application_name": "imanipay_blockchain_service_sync",
-        "options": "-c jit=off",
-    }
 )
 
 # Session factories
@@ -82,33 +81,48 @@ SessionLocal = sessionmaker(
 # ============================================================================
 
 @event.listens_for(async_engine.sync_engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_database_pragma(dbapi_connection, connection_record):
     """Set database connection parameters for optimal performance."""
     if hasattr(dbapi_connection, 'execute'):
-        # PostgreSQL-specific optimizations
         cursor = dbapi_connection.cursor()
         
-        # Set connection-level parameters
-        cursor.execute("SET statement_timeout = '300s'")  # 5 minutes
-        cursor.execute("SET lock_timeout = '30s'")
-        cursor.execute("SET idle_in_transaction_session_timeout = '600s'")  # 10 minutes
-        cursor.execute("SET tcp_keepalives_idle = 600")
-        cursor.execute("SET tcp_keepalives_interval = 30")
-        cursor.execute("SET tcp_keepalives_count = 3")
+        # Check if it's SQLite or PostgreSQL by checking the connection type
+        connection_str = str(type(dbapi_connection))
+        if "sqlite" in connection_str.lower():
+            # SQLite-specific optimizations
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=1000")
+            cursor.execute("PRAGMA temp_store=MEMORY")
+        elif "psycopg" in connection_str.lower() or "asyncpg" in connection_str.lower():
+            # PostgreSQL-specific optimizations
+            cursor.execute("SET statement_timeout = '300s'")  # 5 minutes
+            cursor.execute("SET lock_timeout = '30s'")
+            cursor.execute("SET idle_in_transaction_session_timeout = '600s'")  # 10 minutes
+            cursor.execute("SET tcp_keepalives_idle = 600")
+            cursor.execute("SET tcp_keepalives_interval = 30")
+            cursor.execute("SET tcp_keepalives_count = 3")
         
         cursor.close()
 
 
 @event.listens_for(sync_engine, "connect")
-def set_sync_sqlite_pragma(dbapi_connection, connection_record):
+def set_sync_database_pragma(dbapi_connection, connection_record):
     """Set database connection parameters for sync engine."""
     if hasattr(dbapi_connection, 'execute'):
         cursor = dbapi_connection.cursor()
         
-        # Set connection-level parameters
-        cursor.execute("SET statement_timeout = '300s'")
-        cursor.execute("SET lock_timeout = '30s'")
-        cursor.execute("SET idle_in_transaction_session_timeout = '600s'")
+        # Check if it's SQLite or PostgreSQL by checking the connection type
+        connection_str = str(type(dbapi_connection))
+        if "sqlite" in connection_str.lower():
+            # SQLite-specific optimizations
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+        elif "psycopg" in connection_str.lower() or "asyncpg" in connection_str.lower():
+            # PostgreSQL-specific optimizations
+            cursor.execute("SET statement_timeout = '300s'")
+            cursor.execute("SET lock_timeout = '30s'")
+            cursor.execute("SET idle_in_transaction_session_timeout = '600s'")
         
         cursor.close()
 
