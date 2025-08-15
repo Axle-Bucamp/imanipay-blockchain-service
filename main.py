@@ -8,12 +8,14 @@ Simplified version without authentication, managed by external backend.
 import logging
 import asyncio
 from contextlib import asynccontextmanager
+import time
 from typing import Dict, Any
+import uuid
 
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -100,9 +102,7 @@ app = FastAPI(
     * **TestNet** - Testing Algorand network  
     * **LocalNet** - Local development network (AlgoKit)
     """,
-    version="2.0.0-simplified",
-    docs_url="/docs",
-    redoc_url="/redoc",
+
     lifespan=lifespan,
     openapi_tags=[
         {
@@ -129,6 +129,11 @@ app.add_middleware(SimplifiedSecurityMiddleware)
 
 # Add rate limiting middleware
 app.state.limiter = limiter
+async def _rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded"},
+    )
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
@@ -182,47 +187,42 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ============================================================================
-# Middleware
-# ============================================================================
-
 @app.middleware("http")
 async def add_request_id_middleware(request: Request, call_next):
-    """Add request ID to all requests."""
-    import uuid
+    """Add a unique request ID to each request and include it in response headers."""
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
-    
+
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
-    
     return response
 
 
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next):
-    """Log all requests."""
-    import time
-    
+    """Log all incoming requests and their response times."""
     start_time = time.time()
-    
-    # Log request
-    logger.info(
-        f"Request: {request.method} {request.url.path} "
-        f"from {request.client.host if request.client else 'unknown'}"
-    )
-    
+
+    client_host = request.client.host if request.client else "unknown"
+    logger.info(f"Request: {request.method} {request.url.path} from {client_host}")
+
     response = await call_next(request)
-    
-    # Log response
+
     process_time = time.time() - start_time
-    logger.info(
-        f"Response: {response.status_code} "
-        f"in {process_time:.3f}s"
-    )
-    
+    logger.info(f"Response: {response.status_code} in {process_time:.3f}s")
+
     return response
 
+@app.middleware("http")
+async def add_csp_header(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self' https:; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' https://fastapi.tiangolo.com;"
+    )
+    return response
 
 # ============================================================================
 # API Routes
