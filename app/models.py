@@ -12,7 +12,7 @@ from uuid import uuid4
 
 from sqlalchemy import (
     ARRAY, Boolean, Column, Date, DateTime, Enum, ForeignKey, Integer, 
-    Numeric, String, Text, JSON, Index, CheckConstraint,
+    Numeric, String, Text, JSON, Index, #CheckConstraint,
     UniqueConstraint, BigInteger, TypeDecorator
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -26,6 +26,11 @@ from sqlalchemy.sql import func
 from .schemas.enumerate import KYCStatus, TransactionStatus as PydanticTransactionStatus, UserStatus
 from .schemas.enumerate import *
 from sqlalchemy.dialects import postgresql
+
+if "sqlite" in "sqlite": # non prod 
+    ARRAY_TYPE = JSON
+else:
+    ARRAY_TYPE = ARRAY(String)
 
 # ============================================================================
 # Base Model and Mixins
@@ -80,7 +85,7 @@ class User(Base, TimestampMixin):
     phone_verified = Column(Boolean, default=False, nullable=False)
     two_factor_enabled = Column(Boolean, default=False, nullable=False)
     two_factor_secret = Column(String(255), nullable=True)
-    backup_codes = Column(ARRAY(String), nullable=True)
+    backup_codes = Column(ARRAY_TYPE, nullable=True)
     
     # Preferences
     preferred_language = Column(String(10), default='en', nullable=False)
@@ -97,8 +102,8 @@ class User(Base, TimestampMixin):
     
     # Constraints
     __table_args__ = (
-        CheckConstraint("email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'", name="users_email_check"),
-        CheckConstraint("phone IS NULL OR phone ~* '^\\+[1-9]\\d{1,14}$'", name="users_phone_check"),
+        ##CheckConstraint("email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'", name="users_email_check"), # prod only
+        ##CheckConstraint("phone IS NULL OR phone ~* '^\\+[1-9]\\d{1,14}$'", name="users_phone_check"), # prod only
         Index('idx_users_active', 'id', postgresql_where=status == UserStatus.ACTIVE),
     )
     
@@ -169,7 +174,7 @@ class UserSession(Base, TimestampMixin):
     device_id = Column(String(36), nullable=True)
     device_type = Column(String, nullable=True)
     device_name = Column(String(255), nullable=True)
-    ip_address = Column(IPNetwork, nullable=True)
+    ip_address = Column(String(12), nullable=True)
     user_agent = Column(Text, nullable=True)
     
     # Location information
@@ -191,7 +196,7 @@ class UserSession(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint('expires_at > created_at', name='user_sessions_expires_check'),
+        #CheckConstraint('expires_at > created_at', name='user_sessions_expires_check'),
         Index('idx_user_sessions_user_id', 'user_id'),
         Index('idx_user_sessions_active', 'user_id', 'is_active', postgresql_where=is_active == True),
         Index('idx_user_sessions_expires', 'expires_at'),
@@ -258,10 +263,10 @@ class PaymentMethod(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint(
-            "method_type != 'card' OR (encrypted_card_number IS NOT NULL AND card_last_four IS NOT NULL AND expiry_month BETWEEN 1 AND 12 AND expiry_year >= EXTRACT(YEAR FROM NOW()))",
-            name="payment_methods_card_check"
-        ),
+        ##CheckConstraint(
+        #    "method_type != 'card' OR (encrypted_card_number IS NOT NULL AND card_last_four IS NOT NULL AND expiry_month BETWEEN 1 AND 12 AND expiry_year >= EXTRACT(YEAR FROM NOW()))",
+        #    name="payment_methods_card_check"
+        #), # prod
         Index('idx_payment_methods_user_id', 'user_id'),
         Index('idx_payment_methods_type', 'method_type'),
         Index('idx_payment_methods_verified', 'user_id', 'is_verified', postgresql_where=is_verified == True),
@@ -297,8 +302,8 @@ class ExchangeRate(Base):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint('rate > 0', name='exchange_rates_rate_check'),
-        CheckConstraint('valid_until IS NULL OR valid_until > valid_from', name='exchange_rates_validity_check'),
+        ##CheckConstraint('rate > 0', name='exchange_rates_rate_check'),
+        ##CheckConstraint('valid_until IS NULL OR valid_until > valid_from', name='exchange_rates_validity_check'),
         Index('idx_exchange_rates_pair', 'base_currency', 'quote_currency'),
         Index('idx_exchange_rates_active', 'base_currency', 'quote_currency', 'is_active', postgresql_where=is_active == True),
         Index('idx_exchange_rates_valid_from', 'valid_from'),
@@ -349,8 +354,8 @@ class TransactionStep(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        UniqueConstraint('transaction_id', 'step_number', name='transaction_steps_unique'),
-        CheckConstraint('retry_count <= max_retries', name='transaction_steps_retry_check'),
+        #UniqueConstraint('transaction_id', 'step_number', name='transaction_steps_unique'),
+        ##CheckConstraint('retry_count <= max_retries', name='transaction_steps_retry_check'),
         Index('idx_transaction_steps_transaction_id', 'transaction_id'),
         Index('idx_transaction_steps_status', 'status'),
         Index('idx_transaction_steps_type', 'step_type'),
@@ -392,8 +397,8 @@ class Wallet(Base, TimestampMixin):
     
     # Constraints
     __table_args__ = (
-        CheckConstraint("length(algorand_address) = 58", name="wallets_address_check"),
-        CheckConstraint("multisig_threshold IS NULL OR multisig_threshold > 0", name="wallets_threshold_check"),
+        ##CheckConstraint("length(algorand_address) = 58", name="wallets_address_check"),
+        ##CheckConstraint("multisig_threshold IS NULL OR multisig_threshold > 0", name="wallets_threshold_check"),
         Index('idx_wallets_address', 'algorand_address'),
         Index('idx_wallets_type_status', 'wallet_type', 'status'),
     )
@@ -448,10 +453,10 @@ class Transaction(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint("amount >= 0", name="transactions_amount_check"),
-        CheckConstraint("fee >= 0", name="transactions_fee_check"),
-        CheckConstraint("length(from_address) = 58", name="transactions_from_address_check"),
-        CheckConstraint("length(to_address) = 58", name="transactions_to_address_check"),
+        ##CheckConstraint("amount >= 0", name="transactions_amount_check"),
+        ##CheckConstraint("fee >= 0", name="transactions_fee_check"),
+        ##CheckConstraint("length(from_address) = 58", name="transactions_from_address_check"),
+        ##CheckConstraint("length(to_address) = 58", name="transactions_to_address_check"),
         Index('idx_transactions_wallet_id', 'wallet_id'),
         Index('idx_transactions_algorand_tx_id', 'algorand_tx_id'),
         Index('idx_transactions_status', 'status'),
@@ -507,8 +512,8 @@ class SmartContract(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint("length(creator_address) = 58", name="contracts_creator_address_check"),
-        CheckConstraint("app_address IS NULL OR length(app_address) = 58", name="contracts_app_address_check"),
+        ##CheckConstraint("length(creator_address) = 58", name="contracts_creator_address_check"),
+        ##CheckConstraint("app_address IS NULL OR length(app_address) = 58", name="contracts_app_address_check"),
         Index('idx_smart_contracts_app_id', 'app_id'),
         Index('idx_smart_contracts_type_status', 'contract_type', 'status'),
         Index('idx_smart_contracts_creator', 'creator_address'),
@@ -598,9 +603,9 @@ class AlgorandAsset(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint("total_supply > 0", name="assets_total_supply_check"),
-        CheckConstraint("decimals >= 0 AND decimals <= 19", name="assets_decimals_check"),
-        CheckConstraint("length(creator_address) = 58", name="assets_creator_address_check"),
+        #CheckConstraint("total_supply > 0", name="assets_total_supply_check"),
+        #CheckConstraint("decimals >= 0 AND decimals <= 19", name="assets_decimals_check"),
+        #CheckConstraint("length(creator_address) = 58", name="assets_creator_address_check"),
         Index('idx_algorand_assets_asset_id', 'asset_id'),
         Index('idx_algorand_assets_name', 'asset_name'),
         Index('idx_algorand_assets_creator', 'creator_address'),
@@ -636,8 +641,8 @@ class WalletAsset(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint("balance >= 0", name="wallet_assets_balance_check"),
-        CheckConstraint("asset_id >= 0", name="wallet_assets_asset_id_check"),
+        #CheckConstraint("balance >= 0", name="wallet_assets_balance_check"),
+        #CheckConstraint("asset_id >= 0", name="wallet_assets_asset_id_check"),
         UniqueConstraint('wallet_id', 'asset_id', name='wallet_assets_unique'),
         Index('idx_wallet_assets_wallet_id', 'wallet_id'),
         Index('idx_wallet_assets_asset_id', 'asset_id'),
@@ -710,7 +715,7 @@ class KYCVerification(Base, TimestampMixin):
     # Verification data
     documents_submitted = Column(JSON, default=[], nullable=False)
     verification_data = Column(JSON, default={}, nullable=False)
-    rejection_reasons = Column(ARRAY(String), nullable=True)
+    rejection_reasons = Column(ARRAY_TYPE, nullable=True)
     reviewer_notes = Column(Text, nullable=True)
     
     # Risk assessment
@@ -761,10 +766,10 @@ class AMLScreening(Base, TimestampMixin):
     
     # Constraints and indexes
     __table_args__ = (
-        CheckConstraint(
-            "(user_id IS NOT NULL AND transaction_id IS NULL) OR (user_id IS NULL AND transaction_id IS NOT NULL)",
-            name="aml_screenings_entity_check"
-        ),
+        #CheckConstraint(
+        #    "(user_id IS NOT NULL AND transaction_id IS NULL) OR (user_id IS NULL AND transaction_id IS NOT NULL)",
+        #    name="aml_screenings_entity_check"
+        #),
         Index('idx_aml_screenings_user_id', 'user_id'),
         Index('idx_aml_screenings_transaction_id', 'transaction_id'),
     )

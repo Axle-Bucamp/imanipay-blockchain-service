@@ -20,6 +20,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 
+from app.schemas.enumerate import (UserStatus, KYCStatus, TransactionType, TransactionStatus, RiskLevel, WalletType, PaymentMethodType)
+
 
 # ============================================================================
 # Base Model and Mixins

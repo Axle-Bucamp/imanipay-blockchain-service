@@ -21,13 +21,10 @@ services:
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-production}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-imanipay}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-imanipay}
-      - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -62,7 +59,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro # useless if sqlalchemy 
-      - ./scripts/postgres.conf:/etc/postgresql/postgresql.conf:ro # useless if sqlalchemy 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-imanipay} -d ${POSTGRES_DB:-imanipay}"]
       interval: 10s
@@ -71,41 +67,6 @@ services:
       start_period: 30s
     networks:
       - imanipay-network
-    command: >
-      postgres
-      -c config_file=/etc/postgresql/postgresql.conf
-      -c log_statement=all
-      -c log_destination=stderr
-      -c logging_collector=on
-      -c log_directory=/var/log/postgresql
-      -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
-
-  # ========================================================================
-  # Redis Cache
-  # ========================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: imanipay-redis
-    restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
-    volumes:
-      - redis_data:/data
-      - ./scripts/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - imanipay-network
-    command: >
-      redis-server /usr/local/etc/redis/redis.conf
-      --appendonly yes
-      --requirepass ${REDIS_PASSWORD:-}
 
   # ========================================================================
   # NGINX Reverse Proxy
@@ -121,7 +82,6 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
-      - nginx_logs:/var/log/nginx
     depends_on:
       - api
     healthcheck:
@@ -191,7 +151,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.25.0.0/16
+        - subnet: 172.31.0.0/16
 
 # ========================================================================
 # Volumes
@@ -203,13 +163,7 @@ volumes:
       type: none
       o: bind
       device: ${DATA_DIR:-./data}/postgres
-  
-  redis_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${DATA_DIR:-./data}/redis
+
   
   api_logs:
     driver: local

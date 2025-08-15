@@ -28,15 +28,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
-RUN python -m venv /opt/venv
+RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements first for better caching
-COPY requirements.txt /tmp/requirements.txt
+COPY . .
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install Python dependencies using uv
-RUN uv pip install --upgrade pip setuptools wheel && \
-    uv pip install -r /tmp/requirements.txt
+RUN uv pip install .
 
 # ========================================================================
 # Stage 2: Runtime Image
@@ -87,7 +88,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Use uv to run uvicorn
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
 
 # ========================================================================
 # Stage 3: Development Image
@@ -103,9 +104,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     redis-tools \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-dev.txt /tmp/requirements-dev.txt
-RUN uv pip install -r /tmp/requirements-dev.txt
+COPY . .
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install Python dependencies using uv
+RUN uv pip install .
 
 USER imanipay
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
