@@ -7,7 +7,7 @@ conversion functionality for the payment platform.
 
 import logging
 import asyncio
-from datetime import _TzInfo, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Literal, Optional, Dict, Any, List, Tuple
 from uuid import UUID

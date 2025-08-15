@@ -841,6 +841,6 @@ class ProcessorManager:
 
 
 # Global processor manager instance
-processor_manager = ProcessorManager()
-#processor_manager = None  # Temporarily disabled
+#processor_manager = ProcessorManager()
+processor_manager = None  # Temporarily disabled
 
