@@ -697,10 +697,10 @@ class CoinbaseProcessor(BasePaymentProcessor):
     def __init__(self):
         super().__init__("coinbase")
         self.api_key = settings.payment_processors.coinbase_api_key
-        self.api_secret = settings.payment_processors.coinbase_api_secret
+        # self.api_secret = settings.payment_processors.coinbase_api_secret
         self.base_url = settings.payment_processors.coinbase_base_url
         
-        if self.api_key and self.api_secret:
+        if self.api_key : # and self.api_secret:
             # Coinbase uses different authentication
             self.http_client.headers.update({
                 "Content-Type": "application/json"

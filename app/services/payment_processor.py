@@ -18,11 +18,11 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.database import get_async_session_context, database_transaction
-# from app.models import (
-#     User, Wallet, Transaction, PaymentMethod, ExchangeRate,
-#     TransactionStep, TransactionTypeEnum, TransactionStatusEnum,
-#     UserStatusEnum, PaymentMethodStatusEnum
-# )
+from app.models import (
+     User, Wallet, Transaction, PaymentMethod, ExchangeRate,
+     TransactionStep, TransactionTypeEnum, TransactionStatusEnum,
+     UserStatusEnum, PaymentMethodStatusEnum
+)
 from app.schemas import (
     FiatToCryptoRequest, CryptoToFiatRequest, CrossBorderPaymentRequest,
     TransactionResponse, ConversionQuote, FeeCalculation, ExchangeRate as ExchangeRateSchema
@@ -129,7 +129,7 @@ class PaymentProcessorService:
             # Perform compliance checks
             await self.compliance_service.check_transaction_compliance(
                 user_id=user_id,
-                transaction_type=TransactionTypeEnum.FIAT_TO_CRYPTO,
+                transaction_type=TransactionTypeEnum.FIAT_TO_CRYPTO,            
                 amount=Decimal(str(request.amount)),
                 currency=request.fiat_currency,
                 session=db_session

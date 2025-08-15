@@ -21,7 +21,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 
-
+from schemas import TransactionStatus
 # ============================================================================
 # Base Model and Mixins
 # ============================================================================
@@ -152,7 +152,8 @@ class Transaction(Base, TimestampMixin):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     wallet_id = Column(UUID(as_uuid=True), ForeignKey('wallets.id', ondelete='CASCADE'), nullable=False)
-    
+    status = Column(Enum(TransactionStatus), default=TransactionStatus.PENDING, nullable=False, index=True)
+
     # Transaction identification
     transaction_type = Column(Enum(TransactionTypeEnum), nullable=False)
     status = Column(Enum(TransactionStatusEnum), default=TransactionStatusEnum.PENDING, nullable=False)

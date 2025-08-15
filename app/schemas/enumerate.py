@@ -66,6 +66,7 @@ class PaymentMethodType(str, Enum):
     MOBILE_MONEY = "mobile_money"
     CASH_PICKUP = "cash_pickup"
     CRYPTO_WALLET = "crypto_wallet"
+    FIAT_TO_CRYPTO = ""
 
 
 class WalletType(str, Enum):
