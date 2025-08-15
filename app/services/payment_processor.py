@@ -37,28 +37,6 @@ from app.services.exchange_rate import ExchangeRateService
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Placeholder enums for missing models
-class TransactionTypeEnum(enum.Enum):
-    FIAT_TO_CRYPTO = "fiat_to_crypto"
-    CRYPTO_TO_FIAT = "crypto_to_fiat"
-    CROSS_BORDER_PAYMENT = "cross_border_payment"
-
-class TransactionStatusEnum(enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-class UserStatusEnum(enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
-
-class PaymentMethodStatusEnum(enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    EXPIRED = "expired"
-
 
 class PaymentProcessorError(Exception):
     """Base exception for payment processor errors."""

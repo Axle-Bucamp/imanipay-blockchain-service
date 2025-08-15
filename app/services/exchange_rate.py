@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.database import get_async_session_context
 # from app.models import ExchangeRate  # Temporarily disabled
-from app.schemas import ExchangeRate as ExchangeRateSchema
+from app.schemas.payment import ExchangeRate as ExchangeRateSchema
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -365,7 +365,7 @@ class ExchangeRateService:
         base_currency: str,
         quote_currency: str,
         session: AsyncSession
-    ) -> Optional[ExchangeRate]:
+    ) -> Optional[ExchangeRateSchema]:
         """Get cached exchange rate from database."""
         result = await session.execute(
             select(ExchangeRate)
@@ -382,7 +382,7 @@ class ExchangeRateService:
         
         return result.scalar_one_or_none()
     
-    def _is_rate_stale(self, rate: ExchangeRate) -> bool:
+    def _is_rate_stale(self, rate: ExchangeRateSchema) -> bool:
         """Check if exchange rate is stale."""
         age = datetime.utcnow() - rate.created_at
         return age > self.cache_duration
@@ -392,7 +392,7 @@ class ExchangeRateService:
         base_currency: str,
         quote_currency: str,
         session: AsyncSession
-    ) -> Optional[ExchangeRate]:
+    ) -> Optional[ExchangeRateSchema]:
         """Fetch rate from providers and store in database."""
         try:
             # Determine the best approach based on currency types

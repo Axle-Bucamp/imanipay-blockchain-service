@@ -12,8 +12,10 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 
 from algokit_utils import (
+    AlgoClientNetworkConfig,
     ApplicationClient,
     ApplicationSpecification,
+    ClientManager,
     get_algod_client,
     get_indexer_client,
     ensure_funded,
@@ -45,14 +47,15 @@ class AlgoKitManager:
         if self._algod_client is None:
             try:
                 if self.settings.algorand.is_localnet:
-                    self._algod_client = get_algod_client(
-                        algod_address=self.settings.algorand.localnet_algod_address,
-                        algod_token=self.settings.algorand.localnet_algod_token
+                    algod_config = AlgoClientNetworkConfig(server=self.settings.algorand.localnet_algod_address, token=self.settings.algorand.localnet_algod_token)
+                    self._algod_client = ClientManager.get_algod_client(
+                        algod_config
                     )
                 else:
-                    self._algod_client = get_algod_client(
-                        algod_address=self.settings.algorand.current_algod_address,
-                        algod_token=self.settings.algorand.current_algod_token
+                    algod_config = AlgoClientNetworkConfig(server=self.settings.algorand.current_algod_address, token=self.settings.algorand.current_algod_token)
+
+                    self._algod_client = ClientManager.get_algod_client(
+                        algod_config
                     )
             except Exception as e:
                 logger.error(f"Failed to create algod client: {e}")
@@ -70,15 +73,15 @@ class AlgoKitManager:
         if self._indexer_client is None:
             try:
                 if self.settings.algorand.is_localnet:
-                    self._indexer_client = get_indexer_client(
-                        indexer_address=self.settings.algorand.localnet_indexer_address,
-                        indexer_token=self.settings.algorand.localnet_indexer_token
-                    )
+                    """
+                    indexer_address=self.settings.algorand.localnet_indexer_address,
+                    indexer_token=self.settings.algorand.localnet_indexer_token
+                    """
+                    algod_config = AlgoClientNetworkConfig(server=self.settings.algorand.localnet_indexer_address, token=self.settings.algorand.localnet_indexer_token)
+                    self._indexer_client = ClientManager.get_indexer_client(algod_config)
                 else:
-                    self._indexer_client = get_indexer_client(
-                        indexer_address=self.settings.algorand.current_indexer_address,
-                        indexer_token=self.settings.algorand.current_indexer_token
-                    )
+                    algod_config = AlgoClientNetworkConfig(server=self.settings.algorand.current_indexer_address, token=self.settings.algorand.current_indexer_token)
+                    self._indexer_client = ClientManager.get_indexer_client(algod_config)
             except Exception as e:
                 logger.error(f"Failed to create indexer client: {e}")
                 # Fallback to direct client creation

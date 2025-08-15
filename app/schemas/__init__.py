@@ -43,16 +43,6 @@ if TYPE_CHECKING:
         MFASetupResponse,
         MFAVerificationRequest
     )
-    from .auth import (
-        LoginRequest, 
-        TokenResponse, 
-        RefreshTokenRequest, 
-        PasswordChangeRequest, 
-        PasswordResetRequest, 
-        PasswordResetConfirm, 
-        WebhookEvent, 
-        NotificationPreferences
-        )
     from .enumerate import (
         RiskLevel,
         WalletType,

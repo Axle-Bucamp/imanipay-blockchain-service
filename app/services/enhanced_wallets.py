@@ -20,10 +20,11 @@ from sqlalchemy.orm import selectinload
 from app.core.config import get_settings
 from app.database import get_async_session_context
 # from app.models import User, Wallet, WalletAsset, Transaction, WalletTypeEnum, WalletStatusEnum
+from app.models import Wallet, WalletAsset
 from app.schemas import (
-    WalletCreate, WalletResponse, AssetBalance, WalletBalanceResponse,
-    AssetOptInRequest, TransactionCreate, TransactionType
+    WalletResponse, TransactionCreate, TransactionType
 )
+from app.schemas.wallet import WalletCreate, AssetBalance, WalletBalanceResponse, AssetOptInRequest
 from app.services.algorand_client import AlgorandClient
 from app.services.encryption import EncryptionService
 
@@ -146,7 +147,8 @@ class EnhancedWalletService:
                 if settings.app.enable_fiat_onramp:
                     try:
                         await self._opt_into_asset(
-                            wallet.id, 
+                # Initialize with ALGO asset
+                            UUID(wallet.id), 
                             settings.algorand.usdc_asset_id,
                             db_session
                         )

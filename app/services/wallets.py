@@ -78,10 +78,11 @@ class WalletService:
         print("Private Key:", private_key)
         print("Mnemonic:", mnemonic_phrase)  # This is the one you must save securely.
         from app.schemas.enumerate import WalletType
+        from uuid import uuid4
         
         return WalletResponse(
-            id=UUID("00000000-0000-0000-0000-000000000000"),
-            user_id=UUID("cm9mmryqn0000iiacyvegcftm"),
+            id=str(uuid4()),
+            user_id=str(uuid4()),
             address=address, 
             private_key=private_key,
             wallet_type=WalletType.STANDARD,

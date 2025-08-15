@@ -22,9 +22,11 @@ from app.database import get_async_session_context
 #     User, UserProfile, KYCVerification, AMLScreening, Transaction,
 #     KYCStatusEnum, RiskLevelEnum, TransactionTypeEnum
 # )
+from app.models_old import KYCVerification
 from app.schemas import (
     KYCVerificationRequest, KYCVerificationResponse, RiskAssessment
 )
+from models import AMLScreening, Transaction, User
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -35,6 +37,7 @@ class KYCStatusEnum(enum.Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
     EXPIRED = "expired"
+    IN_PROGRESS =  "progress"
 
 class RiskLevelEnum(enum.Enum):
     LOW = "low"
