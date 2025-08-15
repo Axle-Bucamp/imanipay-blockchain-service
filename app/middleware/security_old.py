@@ -237,24 +237,28 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         window_start = current_time - window_seconds
         
         # Use Redis sorted set for sliding window
-        pipe = self.redis_client.pipeline()
-        
-        # Remove old entries
-        pipe.zremrangebyscore(key, 0, window_start)
-        
-        # Count current requests
-        pipe.zcard(key)
-        
-        # Add current request
-        pipe.zadd(key, {str(current_time): current_time})
-        
-        # Set expiration
-        pipe.expire(key, window_seconds)
-        
-        results = await pipe.execute()
-        current_requests = results[1]
-        
-        return current_requests < max_requests
+        if self.redis_client is not None:
+            pipe = self.redis_client.pipeline()
+            
+            # Remove old entries
+            pipe.zremrangebyscore(key, 0, window_start)
+            
+            # Count current requests
+            pipe.zcard(key)
+            
+            # Add current request
+            pipe.zadd(key, {str(current_time): current_time})
+            
+            # Set expiration
+            pipe.expire(key, window_seconds)
+            
+            results = await pipe.execute()
+            current_requests = results[1]
+            
+            return current_requests < max_requests
+        else:
+            # Fallback to memory-based rate limiting
+            return self._check_memory_rate_limit(client_ip, category, max_requests, window_seconds)
     
     def _check_memory_rate_limit(
         self, 
@@ -504,7 +508,7 @@ class CORSSecurityMiddleware(BaseHTTPMiddleware):
         
         return response
     
-    def _handle_preflight(self, request: Request, origin: str) -> Response:
+    def _handle_preflight(self, request: Request, origin: Optional[str]) -> Response:
         """Handle CORS preflight requests."""
         if not self._is_origin_allowed(origin):
             return Response(status_code=403)
@@ -527,7 +531,7 @@ class CORSSecurityMiddleware(BaseHTTPMiddleware):
         
         return response
     
-    def _add_cors_headers(self, response: Response, origin: str) -> None:
+    def _add_cors_headers(self, response: Response, origin: Optional[str]) -> None:
         """Add CORS headers to response."""
         if self._is_origin_allowed(origin):
             response.headers["access-control-allow-origin"] = origin
@@ -535,7 +539,7 @@ class CORSSecurityMiddleware(BaseHTTPMiddleware):
         
         response.headers["vary"] = "Origin"
     
-    def _is_origin_allowed(self, origin: str) -> bool:
+    def _is_origin_allowed(self, origin: Optional[str]) -> bool:
         """Check if origin is allowed."""
         if not origin:
             return False

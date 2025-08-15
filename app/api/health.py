@@ -7,8 +7,15 @@ database connectivity, external service availability, and system metrics.
 
 import logging
 import asyncio
+import os
 from datetime import datetime
 from typing import Dict, Any
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import text
@@ -18,7 +25,7 @@ from app.core.config import get_settings
 from app.database import get_async_session
 from app.services.algorand_client import AlgorandClient
 from app.services.external_processors import processor_manager
-# from app.services.exchange_rate import ExchangeRateService  # Temporarily disabled
+from app.services.exchange_rate import ExchangeRateService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -121,26 +128,32 @@ async def detailed_health_check(
     
     # External processors health check
     processor_checks = {}
-    for name, processor in processor_manager.processors.items():
-        try:
-            # Test with a mock status check
-            response = await processor.get_transaction_status("health-check-test")
-            
-            if response.success or response.status in ["not_found", "unknown"]:
+    if processor_manager is not None:
+        for name, processor in processor_manager.processors.items():
+            try:
+                # Test with a mock status check
+                response = await processor.get_transaction_status("health-check-test")
+                
+                if response.success or response.status in ["not_found", "unknown"]:
+                    processor_checks[name] = {
+                        "status": "healthy",
+                        "message": "Processor accessible"
+                    }
+                else:
+                    processor_checks[name] = {
+                        "status": "degraded", 
+                        "message": f"Processor responded with: {response.message}"
+                    }
+            except Exception as e:
                 processor_checks[name] = {
-                    "status": "healthy",
-                    "message": "Processor accessible"
+                    "status": "unhealthy",
+                    "message": f"Processor check failed: {str(e)}"
                 }
-            else:
-                processor_checks[name] = {
-                    "status": "degraded", 
-                    "message": f"Processor responded with: {response.message}"
-                }
-        except Exception as e:
-            processor_checks[name] = {
-                "status": "unhealthy",
-                "message": f"Processor check failed: {str(e)}"
-            }
+    else:
+        processor_checks["overall"] = {
+            "status": "degraded",
+            "message": "Processor manager not initialized"
+        }
     
     health_status["checks"]["processors"] = processor_checks
     
@@ -261,8 +274,11 @@ async def _get_database_metrics(session: AsyncSession) -> Dict[str, Any]:
 
 def _get_system_metrics() -> Dict[str, Any]:
     """Get system-related metrics."""
-    import psutil
-    import os
+    if not PSUTIL_AVAILABLE:
+        return {
+            "error": "psutil not available",
+            "message": "System metrics collection requires psutil package"
+        }
     
     try:
         # CPU and memory usage

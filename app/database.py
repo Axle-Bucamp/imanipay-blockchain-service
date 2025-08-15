@@ -267,13 +267,20 @@ async def check_database_health() -> dict:
             
             # Test connection pool status
             pool = async_engine.pool
-            pool_status = {
-                "size": pool.size(),
-                "checked_in": pool.checkedin(),
-                "checked_out": pool.checkedout(),
-                "overflow": pool.overflow(),
-                "invalid": pool.invalid(),
-            }
+            try:
+                pool_status = {
+                    "size": getattr(pool, 'size', lambda: 0)(),
+                    "checked_in": getattr(pool, 'checkedin', lambda: 0)(),
+                    "checked_out": getattr(pool, 'checkedout', lambda: 0)(),
+                    "overflow": getattr(pool, 'overflow', lambda: 0)(),
+                    "invalid": getattr(pool, 'invalid', lambda: 0)(),
+                }
+            except Exception as pool_error:
+                logger.warning(f"Could not get pool status: {pool_error}")
+                pool_status = {
+                    "error": "Pool status unavailable",
+                    "message": str(pool_error)
+                }
             
             return {
                 "status": "healthy" if health_check == 1 else "unhealthy",
@@ -433,11 +440,11 @@ async def get_database_stats() -> dict:
             conn_stats = connection_stats.fetchone()
             
             return {
-                "database_size": db_size_row[0],
-                "database_size_bytes": db_size_row[1],
-                "total_connections": conn_stats[0],
-                "active_connections": conn_stats[1],
-                "idle_connections": conn_stats[2],
+                "database_size": db_size_row[0] if db_size_row else "unknown",
+                "database_size_bytes": db_size_row[1] if db_size_row else 0,
+                "total_connections": conn_stats[0] if conn_stats else 0,
+                "active_connections": conn_stats[1] if conn_stats else 0,
+                "idle_connections": conn_stats[2] if conn_stats else 0,
                 "tables": tables,
             }
             

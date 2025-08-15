@@ -9,6 +9,7 @@ import os
 from typing import Optional, List, Dict, Any
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from decimal import Decimal
 
 
 class DatabaseSettings(BaseSettings):
@@ -80,6 +81,11 @@ class AlgorandSettings(BaseSettings):
     
     # Asset Configuration
     usdc_asset_id: int = Field(default=10458941, description="USDC Asset ID (testnet)")
+    
+    # Wallet Configuration
+    master_wallet_mnemonic: str = Field(default="", description="Master wallet mnemonic phrase")
+    hot_wallet_mnemonic: str = Field(default="", description="Hot wallet mnemonic phrase")
+    platform_token_id: int = Field(default=0, description="Platform token/application ID")
     
     # Transaction Configuration
     default_fee: int = Field(default=1000, description="Default transaction fee in microAlgos")
@@ -261,6 +267,71 @@ class LoggingSettings(BaseSettings):
         return v.upper()
 
 
+class ComplianceSettings(BaseSettings):
+    """Compliance configuration settings."""
+    
+    model_config = SettingsConfigDict(
+        env_prefix="COMPLIANCE_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
+    # KYC Configuration
+    kyc_provider: str = Field(default="mock", description="KYC provider")
+    kyc_enabled: bool = Field(default=True, description="Enable KYC verification")
+    
+    # AML Configuration
+    aml_provider: str = Field(default="mock", description="AML provider")
+    aml_enabled: bool = Field(default=True, description="Enable AML screening")
+    
+    # Risk Thresholds
+    high_risk_threshold: int = Field(default=80, description="High risk threshold")
+    medium_risk_threshold: int = Field(default=50, description="Medium risk threshold")
+    
+    # Transaction Limits
+    single_transaction_limit: Decimal = Field(default=Decimal("10000"), description="Single transaction limit")
+    daily_transaction_limit: Decimal = Field(default=Decimal("50000"), description="Daily transaction limit")
+    monthly_transaction_limit: Decimal = Field(default=Decimal("500000"), description="Monthly transaction limit")
+    
+    # Suspicious Activity
+    suspicious_activity_threshold: Decimal = Field(default=Decimal("5000"), description="Suspicious activity threshold")
+    large_transaction_threshold: Decimal = Field(default=Decimal("10000"), description="Large transaction threshold")
+
+
+class PaymentProcessorsSettings(BaseSettings):
+    """Payment processors configuration settings."""
+    
+    model_config = SettingsConfigDict(
+        env_prefix="PAYMENT_PROCESSORS_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
+    # Circle Configuration
+    circle_api_key: str = Field(default="", description="Circle API key")
+    circle_base_url: str = Field(default="https://api-sandbox.circle.com", description="Circle API base URL")
+    circle_webhook_secret: str = Field(default="", description="Circle webhook secret")
+    
+    # YellowCard Configuration
+    yellowcard_api_key: str = Field(default="", description="YellowCard API key")
+    yellowcard_base_url: str = Field(default="https://api.yellowcard.io", description="YellowCard API base URL")
+    yellowcard_webhook_secret: str = Field(default="", description="YellowCard webhook secret")
+    
+    # Transak Configuration
+    transak_api_key: str = Field(default="", description="Transak API key")
+    transak_base_url: str = Field(default="https://api.transak.com", description="Transak API base URL")
+    transak_webhook_secret: str = Field(default="", description="Transak webhook secret")
+    
+    # Coinbase Configuration
+    coinbase_api_key: str = Field(default="", description="Coinbase API key")
+    coinbase_base_url: str = Field(default="https://api.coinbase.com", description="Coinbase API base URL")
+    coinbase_webhook_secret: str = Field(default="", description="Coinbase webhook secret")
+
+
 class Settings(BaseSettings):
     """Main settings class combining all configuration sections."""
     
@@ -277,6 +348,8 @@ class Settings(BaseSettings):
     algorand: AlgorandSettings = Field(default_factory=AlgorandSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    compliance: ComplianceSettings = Field(default_factory=ComplianceSettings)
+    payment_processors: PaymentProcessorsSettings = Field(default_factory=PaymentProcessorsSettings)
     
     def __init__(self, **kwargs):
         """Initialize settings with nested configuration."""
@@ -288,6 +361,8 @@ class Settings(BaseSettings):
         self.algorand = AlgorandSettings()
         self.security = SecuritySettings()
         self.logging = LoggingSettings()
+        self.compliance = ComplianceSettings()
+        self.payment_processors = PaymentProcessorsSettings()
 
 
 # Global settings instance
@@ -317,6 +392,8 @@ __all__ = [
     "AlgorandSettings",
     "SecuritySettings",
     "LoggingSettings",
+    "ComplianceSettings",
+    "PaymentProcessorsSettings",
     "get_settings",
     "reload_settings"
 ]

@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.database import get_async_session_context
-from app.models import SmartContract, ContractDeployment, ContractInteraction
+# from app.models import SmartContract, ContractDeployment, ContractInteraction
 from app.schemas import (
     ContractDeploymentRequest, ContractDeploymentResponse,
     ContractInteractionRequest, ContractInteractionResponse
@@ -159,28 +159,28 @@ class ContractManager:
                 app_id = confirmed_txn["application-index"]
                 
                 # Store deployment in database
-                contract_deployment = ContractDeployment(
-                    contract_type=contract_type,
-                    app_id=app_id,
-                    deployer_address=deployment_request.deployer_address,
-                    transaction_id=txn_id,
-                    approval_program=base64.b64encode(approval_program).decode(),
-                    clear_program=base64.b64encode(clear_program).decode(),
-                    global_schema=template["global_schema"],
-                    local_schema=template["local_schema"],
-                    deployment_args=deployment_request.app_args or [],
-                    status="deployed",
-                    network=settings.algorand.network
-                )
+                # contract_deployment = ContractDeployment(
+                #     contract_type=contract_type,
+                #     app_id=app_id,
+                #     deployer_address=deployment_request.deployer_address,
+                #     transaction_id=txn_id,
+                #     approval_program=base64.b64encode(approval_program).decode(),
+                #     clear_program=base64.b64encode(clear_program).decode(),
+                #     global_schema=template["global_schema"],
+                #     local_schema=template["local_schema"],
+                #     deployment_args=deployment_request.app_args or [],
+                #     status="deployed",
+                #     network=settings.algorand.network
+                # )
                 
-                db_session.add(contract_deployment)
-                await db_session.commit()
-                await db_session.refresh(contract_deployment)
+                # db_session.add(contract_deployment)
+                # await db_session.commit()
+                # await db_session.refresh(contract_deployment)
                 
                 # Cache deployed contract
                 self.deployed_contracts[app_id] = {
                     "type": contract_type,
-                    "deployment": contract_deployment
+                    "deployment": None # Removed deployment model
                 }
                 
                 self.logger.info(f"Successfully deployed {contract_type} contract with app ID: {app_id}")
@@ -247,16 +247,16 @@ class ContractManager:
                 await self.algorand_client.wait_for_confirmation(txn_id)
                 
                 # Update database record
-                await db_session.execute(
-                    update(ContractDeployment)
-                    .where(ContractDeployment.app_id == app_id)
-                    .values(
-                        approval_program=base64.b64encode(new_approval_program).decode(),
-                        clear_program=base64.b64encode(new_clear_program).decode(),
-                        updated_at=datetime.utcnow()
-                    )
-                )
-                await db_session.commit()
+                # await db_session.execute(
+                #     update(ContractDeployment)
+                #     .where(ContractDeployment.app_id == app_id)
+                #     .values(
+                #         approval_program=base64.b64encode(new_approval_program).decode(),
+                #         clear_program=base64.b64encode(new_clear_program).decode(),
+                #         updated_at=datetime.utcnow()
+                #     )
+                # )
+                # await db_session.commit()
                 
                 self.logger.info(f"Successfully updated contract {app_id}")
                 
@@ -310,15 +310,15 @@ class ContractManager:
                 await self.algorand_client.wait_for_confirmation(txn_id)
                 
                 # Update database record
-                await db_session.execute(
-                    update(ContractDeployment)
-                    .where(ContractDeployment.app_id == app_id)
-                    .values(
-                        status="deleted",
-                        updated_at=datetime.utcnow()
-                    )
-                )
-                await db_session.commit()
+                # await db_session.execute(
+                #     update(ContractDeployment)
+                #     .where(ContractDeployment.app_id == app_id)
+                #     .values(
+                #         status="deleted",
+                #         updated_at=datetime.utcnow()
+                #     )
+                # )
+                # await db_session.commit()
                 
                 # Remove from cache
                 if app_id in self.deployed_contracts:
@@ -390,19 +390,19 @@ class ContractManager:
                 inner_txns = confirmed_txn.get("inner-txns", [])
                 
                 # Store interaction in database
-                contract_interaction = ContractInteraction(
-                    app_id=interaction_request.app_id,
-                    caller_address=interaction_request.caller_address,
-                    method_name=interaction_request.method_name,
-                    method_args=interaction_request.method_args or [],
-                    transaction_id=txn_id,
-                    status="success",
-                    logs=logs,
-                    inner_transactions=inner_txns
-                )
+                # contract_interaction = ContractInteraction(
+                #     app_id=interaction_request.app_id,
+                #     caller_address=interaction_request.caller_address,
+                #     method_name=interaction_request.method_name,
+                #     method_args=interaction_request.method_args or [],
+                #     transaction_id=txn_id,
+                #     status="success",
+                #     logs=logs,
+                #     inner_transactions=inner_txns
+                # )
                 
-                db_session.add(contract_interaction)
-                await db_session.commit()
+                # db_session.add(contract_interaction)
+                # await db_session.commit()
                 
                 self.logger.info(f"Successfully called {interaction_request.method_name} on contract {interaction_request.app_id}")
                 
@@ -623,25 +623,25 @@ class ContractManager:
             List[Dict[str, Any]]: List of deployed contracts
         """
         async def _get_contracts(db_session: AsyncSession) -> List[Dict[str, Any]]:
-            query = select(ContractDeployment).where(ContractDeployment.status == "deployed")
+            # query = select(ContractDeployment).where(ContractDeployment.status == "deployed")
             
-            if contract_type:
-                query = query.where(ContractDeployment.contract_type == contract_type)
+            # if contract_type:
+            #     query = query.where(ContractDeployment.contract_type == contract_type)
             
-            result = await db_session.execute(query)
-            deployments = result.scalars().all()
+            # result = await db_session.execute(query)
+            # deployments = result.scalars().all()
             
             contracts = []
-            for deployment in deployments:
-                contracts.append({
-                    "app_id": deployment.app_id,
-                    "contract_type": deployment.contract_type,
-                    "deployer_address": deployment.deployer_address,
-                    "contract_address": logic.get_application_address(deployment.app_id),
-                    "deployment_timestamp": deployment.created_at,
-                    "transaction_id": deployment.transaction_id,
-                    "network": deployment.network
-                })
+            # for deployment in deployments:
+            #     contracts.append({
+            #         "app_id": deployment.app_id,
+            #         "contract_type": deployment.contract_type,
+            #         "deployer_address": deployment.deployer_address,
+            #         "contract_address": logic.get_application_address(deployment.app_id),
+            #         "deployment_timestamp": deployment.created_at,
+            #         "transaction_id": deployment.transaction_id,
+            #         "network": deployment.network
+            #     })
             
             return contracts
         
@@ -669,28 +669,16 @@ class ContractManager:
             List[Dict[str, Any]]: List of contract interactions
         """
         async def _get_interactions(db_session: AsyncSession) -> List[Dict[str, Any]]:
-            result = await db_session.execute(
-                select(ContractInteraction)
-                .where(ContractInteraction.app_id == app_id)
-                .order_by(ContractInteraction.created_at.desc())
-                .limit(limit)
-            )
+            # result = await db_session.execute(
+            #     select(ContractInteraction)
+            #     .where(ContractInteraction.app_id == app_id)
+            #     .order_by(ContractInteraction.created_at.desc())
+            #     .limit(limit)
+            # )
             
-            interactions = result.scalars().all()
+            # interactions = result.scalars().all()
             
-            return [
-                {
-                    "transaction_id": interaction.transaction_id,
-                    "caller_address": interaction.caller_address,
-                    "method_name": interaction.method_name,
-                    "method_args": interaction.method_args,
-                    "status": interaction.status,
-                    "timestamp": interaction.created_at,
-                    "logs": interaction.logs,
-                    "inner_transactions": interaction.inner_transactions
-                }
-                for interaction in interactions
-            ]
+            return [] # Removed ContractInteraction model
         
         if session:
             return await _get_interactions(session)

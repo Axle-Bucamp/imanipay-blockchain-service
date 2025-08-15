@@ -32,10 +32,10 @@ class TransactionService:
         # Convert mnemonic to private key if needed
         if self.deployer_private_key and len(self.deployer_private_key.split()) > 1:
             # It's a mnemonic phrase
-            self.sender_account = account.Account.from_mnemonic(self.deployer_private_key)
+            self.sender_account = account.address_from_private_key(self.deployer_private_key) 
         else:
             # It's already a private key
-            self.sender_account = account.Account.from_private_key(self.deployer_private_key)
+            self.sender_account = account.address_from_private_key(self.deployer_private_key) 
         self.app_id = settings.algorand.platform_token_id # Use platform token ID as app ID
         if not self.app_id:
             raise ValueError("PAYMENT_CONTRACT_APP_ID is not set.  You must deploy the contract.")
@@ -117,9 +117,9 @@ class TransactionService:
                 "fee": params.fee,
                 "first": params.first,
                 "last": params.last,
-                "ghash": params.genesis_hash if hasattr(params, 'genesis_hash') else None,
-                "genesisID": params.genesis_id if hasattr(params, 'genesis_id') else None,
-                "genesisHash": params.genesis_hash if hasattr(params, 'genesis_hash') else None,
+                "ghash": params.gh  if hasattr(params, 'genesis_hash') else None,
+                "genesisID": params.gh  if hasattr(params, 'genesis_id') else None,
+                "genesisHash": params.gh  if hasattr(params, 'genesis_hash') else None,
             },
             asset_id=payment_in.asset_id,
             admin_wallet_address=self.admin_wallet_address,

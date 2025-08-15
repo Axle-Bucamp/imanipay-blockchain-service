@@ -10,6 +10,7 @@ from decimal import Decimal
 from typing import List, Optional, Dict, Any, Tuple
 from uuid import UUID, uuid4
 from datetime import datetime, timedelta
+import enum
 
 from sqlalchemy import select, update, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,11 +18,11 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.database import get_async_session_context, database_transaction
-from app.models import (
-    User, Wallet, Transaction, PaymentMethod, ExchangeRate,
-    TransactionStep, TransactionTypeEnum, TransactionStatusEnum,
-    UserStatusEnum, PaymentMethodStatusEnum
-)
+# from app.models import (
+#     User, Wallet, Transaction, PaymentMethod, ExchangeRate,
+#     TransactionStep, TransactionTypeEnum, TransactionStatusEnum,
+#     UserStatusEnum, PaymentMethodStatusEnum
+# )
 from app.schemas import (
     FiatToCryptoRequest, CryptoToFiatRequest, CrossBorderPaymentRequest,
     TransactionResponse, ConversionQuote, FeeCalculation, ExchangeRate as ExchangeRateSchema
@@ -35,6 +36,28 @@ from app.services.exchange_rate import ExchangeRateService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Placeholder enums for missing models
+class TransactionTypeEnum(enum.Enum):
+    FIAT_TO_CRYPTO = "fiat_to_crypto"
+    CRYPTO_TO_FIAT = "crypto_to_fiat"
+    CROSS_BORDER_PAYMENT = "cross_border_payment"
+
+class TransactionStatusEnum(enum.Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class UserStatusEnum(enum.Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SUSPENDED = "suspended"
+
+class PaymentMethodStatusEnum(enum.Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    EXPIRED = "expired"
 
 
 class PaymentProcessorError(Exception):

@@ -43,15 +43,24 @@ class AlgoKitManager:
     def algod_client(self) -> algod.AlgodClient:
         """Get Algorand client based on current network configuration."""
         if self._algod_client is None:
-            if self.settings.algorand.is_localnet:
-                self._algod_client = get_algod_client(
-                    server=self.settings.algorand.localnet_algod_address,
-                    token=self.settings.algorand.localnet_algod_token
-                )
-            else:
-                self._algod_client = get_algod_client(
-                    server=self.settings.algorand.current_algod_address,
-                    token=self.settings.algorand.current_algod_token
+            try:
+                if self.settings.algorand.is_localnet:
+                    self._algod_client = get_algod_client(
+                        algod_address=self.settings.algorand.localnet_algod_address,
+                        algod_token=self.settings.algorand.localnet_algod_token
+                    )
+                else:
+                    self._algod_client = get_algod_client(
+                        algod_address=self.settings.algorand.current_algod_address,
+                        algod_token=self.settings.algorand.current_algod_token
+                    )
+            except Exception as e:
+                logger.error(f"Failed to create algod client: {e}")
+                # Fallback to direct client creation
+                from algosdk.v2client import algod
+                self._algod_client = algod.AlgodClient(
+                    self.settings.algorand.current_algod_token,
+                    self.settings.algorand.current_algod_address
                 )
         return self._algod_client
     
@@ -59,15 +68,24 @@ class AlgoKitManager:
     def indexer_client(self) -> indexer.IndexerClient:
         """Get Algorand indexer client based on current network configuration."""
         if self._indexer_client is None:
-            if self.settings.algorand.is_localnet:
-                self._indexer_client = get_indexer_client(
-                    server=self.settings.algorand.localnet_indexer_address,
-                    token=self.settings.algorand.localnet_indexer_token
-                )
-            else:
-                self._indexer_client = get_indexer_client(
-                    server=self.settings.algorand.current_indexer_address,
-                    token=self.settings.algorand.current_indexer_token
+            try:
+                if self.settings.algorand.is_localnet:
+                    self._indexer_client = get_indexer_client(
+                        indexer_address=self.settings.algorand.localnet_indexer_address,
+                        indexer_token=self.settings.algorand.localnet_indexer_token
+                    )
+                else:
+                    self._indexer_client = get_indexer_client(
+                        indexer_address=self.settings.algorand.current_indexer_address,
+                        indexer_token=self.settings.algorand.current_indexer_token
+                    )
+            except Exception as e:
+                logger.error(f"Failed to create indexer client: {e}")
+                # Fallback to direct client creation
+                from algosdk.v2client import indexer
+                self._indexer_client = indexer.IndexerClient(
+                    self.settings.algorand.current_indexer_token,
+                    self.settings.algorand.current_indexer_address
                 )
         return self._indexer_client
     
@@ -298,10 +316,13 @@ class AlgoKitManager:
             if self.settings.algorand.is_localnet:
                 try:
                     # Use AlgoKit utils to fund the account
-                    account_info = get_account(private_key, self.algod_client)
+                    account_info = get_account(
+                        name="test_account",
+                        parameters={"private_key": private_key}
+                    )
                     ensure_funded(
                         client=self.algod_client,
-                        account_to_fund=account_info,
+                        account_to_fund=address,
                         min_spending_balance_micro_algos=initial_balance
                     )
                     

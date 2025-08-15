@@ -216,15 +216,15 @@ class MultiSigContract:
         # Main program logic
         program = Cond(
             [Txn.application_id() == Int(0), Return(Int(1))],  # Creation
-            [Txn.on_call() == self.METHOD_INITIALIZE, initialize_wallet],
-            [Txn.on_call() == self.METHOD_ADD_SIGNER, add_signer],
-            [Txn.on_call() == self.METHOD_REMOVE_SIGNER, remove_signer],
-            [Txn.on_call() == self.METHOD_UPDATE_THRESHOLD, update_threshold],
-            [Txn.on_call() == self.METHOD_PROPOSE_TRANSACTION, propose_transaction],
-            [Txn.on_call() == self.METHOD_SIGN_PROPOSAL, sign_proposal],
-            [Txn.on_call() == self.METHOD_EXECUTE_PROPOSAL, execute_proposal],
-            [Txn.on_call() == self.METHOD_CANCEL_PROPOSAL, cancel_proposal],
-            [Txn.on_call() == self.METHOD_BATCH_EXECUTE, batch_execute]
+            [Txn.application_args[0] == Bytes(self.METHOD_INITIALIZE), initialize_wallet],
+            [Txn.application_args[0] == Bytes(self.METHOD_ADD_SIGNER), add_signer],
+            [Txn.application_args[0] == Bytes(self.METHOD_REMOVE_SIGNER), remove_signer],
+            [Txn.application_args[0] == Bytes(self.METHOD_UPDATE_THRESHOLD), update_threshold],
+            [Txn.application_args[0] == Bytes(self.METHOD_PROPOSE_TRANSACTION), propose_transaction],
+            [Txn.application_args[0] == Bytes(self.METHOD_SIGN_PROPOSAL), sign_proposal],
+            [Txn.application_args[0] == Bytes(self.METHOD_EXECUTE_PROPOSAL), execute_proposal],
+            [Txn.application_args[0] == Bytes(self.METHOD_CANCEL_PROPOSAL), cancel_proposal],
+            [Txn.application_args[0] == Bytes(self.METHOD_BATCH_EXECUTE), batch_execute]
         )
         
         return program
@@ -483,17 +483,17 @@ class MultiSigContract:
         # Simplified implementation - would iterate through proposal IDs in args
         return Seq([
             # Execute first proposal
-            If(Len(Txn.application_args) > Int(1),
+            If(Txn.num_app_args() > Int(1),
                 self._execute_proposal_transaction(Btoi(Txn.application_args[1]))
             ),
             
             # Execute second proposal
-            If(Len(Txn.application_args) > Int(2),
+            If(Txn.num_app_args() > Int(2),
                 self._execute_proposal_transaction(Btoi(Txn.application_args[2]))
             ),
             
             # Execute third proposal
-            If(Len(Txn.application_args) > Int(3),
+            If(Txn.num_app_args() > Int(3),
                 self._execute_proposal_transaction(Btoi(Txn.application_args[3]))
             )
         ])

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Optional, Dict, Any, Tuple
 from uuid import UUID
+import enum
 
 from sqlalchemy import select, update, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,16 +18,33 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.database import get_async_session_context
-from app.models import (
-    User, UserProfile, KYCVerification, AMLScreening, Transaction,
-    KYCStatusEnum, RiskLevelEnum, TransactionTypeEnum
-)
+# from app.models import (
+#     User, UserProfile, KYCVerification, AMLScreening, Transaction,
+#     KYCStatusEnum, RiskLevelEnum, TransactionTypeEnum
+# )
 from app.schemas import (
     KYCVerificationRequest, KYCVerificationResponse, RiskAssessment
 )
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Placeholder enums for missing models
+class KYCStatusEnum(enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+
+class RiskLevelEnum(enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+class TransactionTypeEnum(enum.Enum):
+    CROSS_BORDER_PAYMENT = "cross_border_payment"
+    LOCAL_PAYMENT = "local_payment"
+    CRYPTO_TRANSFER = "crypto_transfer"
 
 
 class ComplianceError(Exception):

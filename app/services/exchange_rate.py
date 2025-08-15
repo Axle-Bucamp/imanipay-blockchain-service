@@ -220,19 +220,20 @@ class ExchangeRateService:
         """
         async def _get_supported(db_session: AsyncSession) -> Dict[str, List[str]]:
             # Get currencies from database
-            result = await db_session.execute(
-                select(ExchangeRate.base_currency, ExchangeRate.quote_currency)
-                .where(ExchangeRate.is_active == True)
-                .distinct()
-            )
+            # result = await db_session.execute(
+            #     select(ExchangeRate.base_currency, ExchangeRate.quote_currency)
+            #     .where(ExchangeRate.is_active == True)
+            #     .distinct()
+            # )
             
-            db_currencies = set()
-            for base, quote in result.fetchall():
-                db_currencies.add(base)
-                db_currencies.add(quote)
+            # db_currencies = set()
+            # for base, quote in result.fetchall():
+            #     db_currencies.add(base)
+            #     db_currencies.add(quote)
             
             # Combine with known currencies
-            all_currencies = db_currencies | self.fiat_currencies | set(self.crypto_currencies.keys())
+            # all_currencies = db_currencies | self.fiat_currencies | set(self.crypto_currencies.keys())
+            all_currencies = self.fiat_currencies | set(self.crypto_currencies.keys())
             
             return {
                 "fiat": sorted(list(self.fiat_currencies & all_currencies)),

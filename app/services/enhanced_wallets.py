@@ -9,16 +9,17 @@ import logging
 from decimal import Decimal
 from typing import List, Optional, Dict, Any, Tuple
 from uuid import UUID
+import enum
 
 from algosdk import account, mnemonic, transaction
 from algosdk.v2client import algod, indexer
-from sqlalchemy import select, update, and_, or_
+from sqlalchemy import select, update, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.database import get_async_session_context
-from app.models import User, Wallet, WalletAsset, Transaction, WalletTypeEnum, WalletStatusEnum
+# from app.models import User, Wallet, WalletAsset, Transaction, WalletTypeEnum, WalletStatusEnum
 from app.schemas import (
     WalletCreate, WalletResponse, AssetBalance, WalletBalanceResponse,
     AssetOptInRequest, TransactionCreate, TransactionType
@@ -28,6 +29,18 @@ from app.services.encryption import EncryptionService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Placeholder enums for missing models
+class WalletTypeEnum(enum.Enum):
+    STANDARD = "standard"
+    MULTISIG = "multisig"
+    SMART_CONTRACT = "smart_contract"
+    ESCROW = "escrow"
+
+class WalletStatusEnum(enum.Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    FROZEN = "frozen"
 
 
 class WalletServiceError(Exception):
